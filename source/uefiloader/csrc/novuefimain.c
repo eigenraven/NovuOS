@@ -87,6 +87,8 @@ struct OSBootData
 	UINT8 screenFormat;
 };
 
+EFI_STATUS Status;
+
 EFI_MEMORY_DESCRIPTOR *Memmap;
 UINTN MemmapSize=0, MemmapDescriptorSize, MemmapKey, LastMemmapPages;
 UINT32 MemmapDescriptorVersion;
@@ -94,10 +96,13 @@ UINT32 MemmapDescriptorVersion;
 EFI_GRAPHICS_OUTPUT_PROTOCOL *GOP;
 EFI_GUID GOP_GUID = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
 UINT32 *Gpixels;
-UINT32 Gstride;
+UINT32 Gstride, GscreenX, GscreenY;
 UINT64 GpixelsN;
 UINT8 GisBGR;
 CHAR16 tmpstr[64];
+
+char CPUVendor[13];
+CHAR16 LCPUVendor[13];
 
 int POTS[] =
 {
@@ -141,9 +146,6 @@ void tmpItoa(int v)
 	}
 	*(ptr++) = '\0';
 }
-
-char CPUVendor[13];
-CHAR16 LCPUVendor[13];
 
 void DoEarlyCPUID()
 {
@@ -231,12 +233,13 @@ void SetVideoMode(int maxx, int maxy)
 	Gstride = bestmode.PixelsPerScanLine;
 	GisBGR = (bestmode.PixelFormat==PixelBlueGreenRedReserved8BitPerColor)?1:0;
 	Gpixels = (int*)GOP->Mode->FrameBufferBase;
+    GscreenX = bestmode.HorizontalResolution;
+    GscreenY = bestmode.VerticalResolution;
 	GpixelsN = GOP->Mode->FrameBufferSize;
 }
 
 EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 {
-	EFI_STATUS Status;
 	EFI_INPUT_KEY Key;
 	ST = SystemTable;
 	ST->BootServices->SetWatchdogTimer(0, 0, 0, NULL);
@@ -250,10 +253,10 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 	ShowBootString(L"CPU: ");
 	ShowBootStringLn(LCPUVendor);
 	ShowBootString(L"Set video mode: ");
-	tmpItoa(bestmode.HorizontalResolution);
+	tmpItoa(GscreenX);
 	ShowBootString(tmpstr);
 	ShowBootString(L" * ");
-	tmpItoa(bestmode.VerticalResolution);
+	tmpItoa(GscreenY);
 	ShowBootString(tmpstr);
 	ShowBootString(L"\r\n");
 
@@ -264,17 +267,6 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 
 #if 1
 	ShowBootStringLn(L"Press key...");
-
-	for(int iy=16; iy<512; iy++)
-	{
-		for(int ix=512; ix<1200; ix++)
-		{
-			int R = (ix*255)/1200;
-			int G = (iy*255)/512;
-			int B = (R+G)/2;
-			Gpixels[ Gstride*iy + ix ] = R + G<<4 + B<<8;
-		}
-	}
 
 	Status = ST->ConIn->Reset(ST->ConIn, FALSE);
 	if (EFI_ERROR(Status))
