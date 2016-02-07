@@ -1,7 +1,7 @@
 #include <efi.h>
 #include <efilib.h>
 
-extern INT32 nvos_uefi_dmain(SIMPLE_TEXT_OUTPUT_INTERFACE*,EFI_TEXT_OUTPUT_STRING);
+//extern INT32 nvos_uefi_dmain(SIMPLE_TEXT_OUTPUT_INTERFACE*,EFI_TEXT_OUTPUT_STRING);
 void ShowBootString(CHAR16* lstr);
 void ShowBootStringLn(CHAR16* lstr);
 UINT8 CheckedRun(EFI_STATUS status, CHAR16* info);
@@ -239,7 +239,14 @@ void SetVideoMode(int maxx, int maxy)
 	GpixelsN = GOP->Mode->FrameBufferSize;
 }
 
-EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
+EFI_STATUS defi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable);
+
+EFIAPI EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
+{
+	defi_main(ImageHandle, SystemTable);
+}
+
+EFI_STATUS cefi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 {
 	EFI_INPUT_KEY Key;
 	ST = SystemTable;
@@ -266,8 +273,8 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 	ShowBootStringLn(L"Memory map obtained");
     
     ShowBootString(L"Calling D: ");
-    int r = nvos_uefi_dmain(ST->ConOut,ST->ConOut->OutputString);
-    tmpItoa(r);
+    //int r = nvos_uefi_dmain(ST->ConOut,ST->ConOut->OutputString);
+    //tmpItoa(r);
     ShowBootStringLn(tmpstr);
 
 
