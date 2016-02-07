@@ -1,0 +1,3 @@
+[submodule "uefi-d"]
+	path = uefi-d
+	url = https://github.com/kubasz/uefi-d.git

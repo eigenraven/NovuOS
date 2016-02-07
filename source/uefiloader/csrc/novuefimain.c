@@ -1,6 +1,7 @@
 #include <efi.h>
 #include <efilib.h>
 
+extern INT32 nvos_uefi_dmain(SIMPLE_TEXT_OUTPUT_INTERFACE*,EFI_TEXT_OUTPUT_STRING);
 void ShowBootString(CHAR16* lstr);
 void ShowBootStringLn(CHAR16* lstr);
 UINT8 CheckedRun(EFI_STATUS status, CHAR16* info);
@@ -263,6 +264,11 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 	ShowBootStringLn(L"Getting memory map");
 	LoadMemoryMap();
 	ShowBootStringLn(L"Memory map obtained");
+    
+    ShowBootString(L"Calling D: ");
+    int r = nvos_uefi_dmain(ST->ConOut,ST->ConOut->OutputString);
+    tmpItoa(r);
+    ShowBootStringLn(tmpstr);
 
 
 #if 1
