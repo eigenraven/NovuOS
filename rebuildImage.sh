@@ -19,6 +19,9 @@ mkfs.vfat /tmp/part.img -F 32
 
 mmd -i /tmp/part.img ::/EFI
 mmd -i /tmp/part.img ::/EFI/BOOT
+echo mcopy -i /tmp/part.img $2 ::/EFI/BOOT
 mcopy -i /tmp/part.img $2 ::/EFI/BOOT
+mcopy -i /tmp/part.img $3 ::/EFI/BOOT
+echo mcopy -i /tmp/part.img $3 ::/EFI/BOOT
 
 dd if=/tmp/part.img of=$IMAGE_PATH bs=512 count=129024 seek=2048 conv=notrunc

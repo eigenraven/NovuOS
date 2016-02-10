@@ -17,6 +17,6 @@ const kernel_obj_main = objectFile(SourceFile(`source/kernel/novuos/kmain.d`),  
 
 const kernel_elf = Target(`$project/output/novuos.elf`, `ld -T $project/source/kernel/linker.ld -nostdlib -nodefaultlibs -o $out $in`, [kernel_obj_main]);
 
-const novuos_image = Target(`$project/output/bootimage.img`, `$project/rebuildImage.sh $out $in`, [uefi_app]);
+const novuos_image = Target(`$project/output/bootimage.img`, `$project/rebuildImage.sh $out $in`, [uefi_app, kernel_elf]);
 
 mixin build!(kernel_elf, novuos_image);

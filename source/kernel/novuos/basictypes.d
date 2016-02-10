@@ -1,0 +1,2 @@
+module novuos.basictypes;
+

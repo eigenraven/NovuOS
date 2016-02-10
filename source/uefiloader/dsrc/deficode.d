@@ -1,6 +1,7 @@
 module deficode;
 
 import uefi;
+import uefi.protocols.simplefilesystem;
 import novuos.bootdata;
 
 __gshared
@@ -8,8 +9,14 @@ __gshared
 	OSBootData BootData;
 	EFI_SYSTEM_TABLE *ST;
 	EFI_BOOT_SERVICES *BS;
+    EFI_HANDLE ImageHandle;
+    FILEPATH_DEVICE_PATH *KernelPath;
+    EFI_LOADED_IMAGE_PROTOCOL *LIP;
+    EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *SFSP;
+    EFI_FILE_PROTOCOL *RootDir;
 	wchar[3] NewLine = ['\r','\n','\0'];
 	wchar[64] StrBuffer;
+    ubyte[] KernelImage;
 
 	EFI_MEMORY_DESCRIPTOR *Memmap;
 	UINTN MemmapSize=0, MemmapDescriptorSize, MemmapKey, LastMemmapPages;
@@ -102,8 +109,13 @@ void CheckEfiCode(EFI_STATUS st, const(wchar)[] msg)
 
 void LoadProtocols()
 {
+    GUID LIP_GUID = EFI_LOADED_IMAGE_PROTOCOL_GUID;
+    CheckEfiCode(BS.HandleProtocol(ImageHandle, &LIP_GUID, cast(void**)&LIP),"Acquiring Loaded Image Protocol");
 	GUID GOP_GUID = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
-	CheckEfiCode(BS.LocateProtocol(&GOP_GUID, null, cast(void**)(&BootData.GOP)),"Acquiring Graphics Output Protocl"w);
+	CheckEfiCode(BS.LocateProtocol(&GOP_GUID, null, cast(void**)(&BootData.GOP)),"Acquiring Graphics Output Protocol"w);
+    GUID SFSP_GUID = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
+    CheckEfiCode(BS.LocateProtocol(&SFSP_GUID, null, cast(void**)(&SFSP)),"Acquiring Simple FS Protocol"w);
+    CheckEfiCode(SFSP.OpenVolume(SFSP, (&RootDir)), "Opening root dir of volume"w);
 }
 
 void SetVideoMode(int maxx, int maxy)
@@ -194,8 +206,42 @@ void FillTestPattern()
 	}
 }
 
-extern(C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
+void LoadKernelImage()
 {
+    EFI_FILE_PROTOCOL* fp;
+    EFI_STATUS Status = RootDir.Open(RootDir, &fp, cast(CHAR16*)("\\EFI\\BOOT\\novuos.elf"w.ptr),EFI_FILE_MODE_READ,0);
+    if(Status==EFI_NOT_FOUND)
+    {
+        ShowBootStringLn("Could not find kernel image"w);
+        while(1){}
+    }
+    CheckEfiCode(Status, "Could not open kernel image file"w);
+    GUID Fiid = EFI_FILE_INFO_ID;
+    align(16) ubyte[EFI_FILE_INFO.sizeof + 256] InfoBuffer = void;
+    ulong fisz = InfoBuffer.length;
+    CheckEfiCode(fp.GetInfo(fp, &Fiid, &fisz, cast(void*)(InfoBuffer.ptr)),"Getting file info"w);
+    EFI_FILE_INFO* fi = cast(EFI_FILE_INFO*)(InfoBuffer.ptr);
+    ShowBootString("File size: ");
+    int filesz = cast(int)fi.FileSize;
+    ShowBootNumber(filesz);
+    ShowBootStringLn(" bytes");
+    
+    // allocate memory
+    ubyte* fdptr;
+    int afsz = (filesz/4096)+1;
+    Status = BS.AllocatePages(AllocateAnyPages, EfiLoaderData, afsz, cast(UINTN*)(&fdptr));
+		CheckEfiCode(Status, "Failed to allocate memory for kimage"w);
+    KernelImage = fdptr[0 .. afsz*4096];
+    // load file
+    fisz = KernelImage.length;
+    CheckEfiCode(fp.Read(fp, &fisz, cast(void*)(KernelImage.ptr)),"Reading kimage"w);
+    fp.Close(fp);
+    RootDir.Close(RootDir);
+}
+
+extern(C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE *SystemTable)
+{
+    ImageHandle = ImageHandle_;
 	ST = SystemTable;
 	BS = ST.BootServices;
 	BootData.ST = ST;
@@ -209,7 +255,10 @@ extern(C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTa
 	ShowBootString("x"w);
 	ShowBootNumber(BootData.FB.h);
 	ShowBootString("\r\n"w);
-
+    
+    ShowBootStringLn("Loading kernel image..."w);
+    LoadKernelImage();
+    
 	ShowBootStringLn("Getting memory map"w);
 	FetchMemoryMap();
 	ShowBootStringLn("Memory map obtained"w);
