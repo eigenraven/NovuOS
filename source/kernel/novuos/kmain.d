@@ -1,6 +1,9 @@
 module novuos.kmain;
 
+import novuos.basictypes;
 import novuos.bootdata;
+import novuos.memory.pager;
+import novuos.formats.elf;
 
 extern(C) void _d_dso_registry(void* data) {}
 
