@@ -3,6 +3,8 @@ module deficode;
 import uefi;
 import uefi.protocols.simplefilesystem;
 import novuos.bootdata;
+import novuos.formats.elf;
+import novuos.memory.pager;
 
 __gshared
 {
@@ -206,6 +208,22 @@ void FillTestPattern()
 	}
 }
 
+void EnableSSE()
+{
+	asm @nogc nothrow
+	{
+		mov RAX, CR0 ;
+		and AX, 0xFFFB ;
+		or AX, 0x2 ;
+		mov CR0, RAX ;
+		mov RAX, CR4 ;
+		or AX, 3 << 9 ;
+		mov CR4, RAX ;
+		
+		xorps XMM0, XMM0 ; // test if it works
+	}
+}
+
 void LoadKernelImage()
 {
     EFI_FILE_PROTOCOL* fp;
@@ -273,9 +291,11 @@ extern(C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE *SystemT
 		while(ST.ConIn.ReadKeyStroke(ST.ConIn, &Key)==EFI_NOT_READY)
 		{}
 	}
-
+	ShowBootStringLn("Enabling SSE"w);
+	EnableSSE();
 	ShowBootStringLn("Executing OS image"w);
 
 	while(1){}
 }
+
 
