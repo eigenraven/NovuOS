@@ -1,6 +1,7 @@
 module novuos.bootdata;
 
 import uefi;
+import novuos.memory.pager;
 
 enum BootFramebufferFormat
 {

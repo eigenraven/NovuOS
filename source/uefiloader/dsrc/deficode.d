@@ -5,6 +5,7 @@ import uefi.protocols.simplefilesystem;
 import novuos.bootdata;
 import novuos.formats.elf;
 import novuos.memory.pager;
+import ldc.intrinsics;
 
 __gshared
 {
@@ -30,6 +31,30 @@ extern(C) void* _tls_index = null;
 
 @nogc:
 nothrow:
+
+extern(C) void* memcpy(void* dst, void* src, size_t n)
+{
+	ubyte* D = cast(ubyte*)dst;
+	ubyte* S = cast(ubyte*)src;
+	while(n)
+	{
+		*D++ = *S++;
+		n--;
+	}
+	return dst;
+}
+
+extern(C) void* memset(void* dst, int vv, size_t n)
+{
+	ubyte* D = cast(ubyte*)dst;
+	ubyte V = cast(ubyte)vv;
+	while(n)
+	{
+		*D++ = V;
+		n--;
+	}
+	return dst;
+}
 
 void itoaBuffer(int v)
 {
@@ -239,22 +264,100 @@ void LoadKernelImage()
     ulong fisz = InfoBuffer.length;
     CheckEfiCode(fp.GetInfo(fp, &Fiid, &fisz, cast(void*)(InfoBuffer.ptr)),"Getting file info"w);
     EFI_FILE_INFO* fi = cast(EFI_FILE_INFO*)(InfoBuffer.ptr);
-    ShowBootString("File size: ");
+    ShowBootString("File size: "w);
     int filesz = cast(int)fi.FileSize;
     ShowBootNumber(filesz);
-    ShowBootStringLn(" bytes");
+    ShowBootStringLn(" bytes"w);
     
     // allocate memory
     ubyte* fdptr;
     int afsz = (filesz/4096)+1;
     Status = BS.AllocatePages(AllocateAnyPages, EfiLoaderData, afsz, cast(UINTN*)(&fdptr));
-		CheckEfiCode(Status, "Failed to allocate memory for kimage"w);
+	CheckEfiCode(Status, "Failed to allocate memory for kimage"w);
     KernelImage = fdptr[0 .. afsz*4096];
     // load file
     fisz = KernelImage.length;
     CheckEfiCode(fp.Read(fp, &fisz, cast(void*)(KernelImage.ptr)),"Reading kimage"w);
     fp.Close(fp);
     RootDir.Close(RootDir);
+}
+
+void AllocPages(size_t *sz, ubyte** ptr)
+{
+	*ptr = null;
+	long psz = ((*sz)/4096)+1;
+	*sz = psz*4096;
+	auto Status = BS.AllocatePages(AllocateAnyPages, EfiLoaderData, psz, cast(UINTN*)(ptr));
+	CheckEfiCode(Status, "Failed to allocate memory"w);
+}
+
+private void ZeroMem(ubyte[] mem)
+{
+	llvm_memset(mem.ptr, 0, mem.length, 8);
+}
+
+void AllocateKernelImage()
+{
+	int pagesrqred;
+	ElfHeader* ehdr = cast(ElfHeader*)KernelImage.ptr;
+	if(ehdr.magicNumber != ElfHeader.Magic)
+	{
+		ShowBootString("Kernel image is not in ELF format! Magic:"w);
+		ShowBootNumber(ehdr.magicNumber);
+		ShowBootString("\r\n"w);
+		while(1){}
+	}
+	if(ehdr.architecture != ElfArch.ELF64)
+	{
+		ShowBootString("Kernel image is not in ELF64 architecture! Arch:"w);
+		ShowBootNumber(cast(int)ehdr.architecture);
+		ShowBootString("\r\n"w);
+		while(1){}
+	}
+	if(ehdr.iset != ElfInstructionSet.X86_64)
+	{
+		ShowBootString("Kernel image is not in x64 instruction set! Iset:"w);
+		ShowBootNumber(cast(int)ehdr.iset);
+		ShowBootString("\r\n"w);
+		while(1){}
+	}
+	ElfProgramHeader* eph = cast(ElfProgramHeader*)(KernelImage.ptr + ehdr.programHeaderPos);
+	void* sections = cast(ElfSectionHeader*)(KernelImage.ptr + ehdr.sectionHeaderPos);
+	size_t sect = ehdr.sectionHeaderSizeEntrySize;
+	static struct KSect
+	{
+		ElfSectionHeader* S;
+		UINTN sz;
+		ubyte* pptr;
+		ubyte* vptr;
+	}
+	KSect[32] kSects = void;
+	int nSects = 0;
+	for(size_t si = 0; si<ehdr.sectionHeaderSizeEntryCount; si++)
+	{
+		ElfSectionHeader* section = cast(ElfSectionHeader*)(&sections[si * ehdr.sectionHeaderSizeEntrySize]);
+		if((section.flags & ElfSectionFlags.Alloc)==0)continue;
+		kSects[nSects].S = section;
+		kSects[nSects].sz = section.size;
+		AllocPages(&kSects[nSects].sz,&kSects[nSects].pptr);
+		pagesrqred += kSects[nSects].sz/4096;
+		size_t len = kSects[nSects].sz;
+		ZeroMem(kSects[nSects].pptr[0..len]);
+		kSects[nSects].vptr = cast(ubyte*)(section.dataVaddr);
+		ubyte* fptr = cast(ubyte*)(KernelImage.ptr + section.dataOffset);
+		switch(section.type) with(ElfSectionType)
+		{
+			case ProgBits:
+				llvm_memcpy(kSects[nSects].pptr, fptr, len, 4);
+				break;
+			case NoBits:
+				break;
+			default:
+				break;
+		}
+	}
+	ShowBootStringLn("Kernel image allocated OK");
+	
 }
 
 extern(C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE *SystemTable)
@@ -276,6 +379,7 @@ extern(C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE *SystemT
     
     ShowBootStringLn("Loading kernel image..."w);
     LoadKernelImage();
+	AllocateKernelImage();
     
 	ShowBootStringLn("Getting memory map"w);
 	FetchMemoryMap();

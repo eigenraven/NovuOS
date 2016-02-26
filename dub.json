@@ -1,0 +1,16 @@
+{
+	"name": "novuos",
+	"description": "NovuOS",
+	"importPaths": [
+		"source/kernel",
+		"source/uefiloader/dsrc"
+	],
+	"authors": [
+		"kubasz"
+	],
+	"copyright": "Copyright C kubasz",
+	"targetType": "executable",
+	"preBuildCommands": [
+		"false"
+	]
+}

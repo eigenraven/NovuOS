@@ -31,7 +31,8 @@ enum ElfInstructionSet : ushort
 struct ElfHeader
 {
 	align(1):
-	uint magicNumber = 0x7f_45_4c_46;
+	enum uint Magic = 0x46_4c_45_7f;
+	uint magicNumber = Magic;
 	
 	ElfArch architecture = ElfArch.ELF64;
 	ElfEndianness endianness = ElfEndianness.Little;
@@ -89,4 +90,48 @@ struct ElfProgramHeader
     ulong fileSize;
     ulong memSize;
     ulong alignment;
+}
+
+enum ElfSectionType : uint
+{
+	Null = 0,
+	ProgBits = 1,
+	SymTab = 2,
+	StrTab = 3,
+	Rela = 4,
+	Hash = 5,
+	Dynamic = 6,
+	Note = 7,
+	NoBits = 8,
+	Rel = 9,
+	ShLib = 10,
+	DynSym = 11,
+	LoOS = 0x6000_0000,
+	HiOS = 0x6FFF_FFFF,
+	LoProc = 0x7000_0000,
+	HiProc = 0x7FFF_FFFF
+}
+
+enum ElfSectionFlags : ulong
+{
+	Write = 1,
+	Alloc = 2,
+	Executable = 4,
+	MaskOs = 0x0F00_0000,
+	MaskProc = 0xF000_0000
+}
+
+struct ElfSectionHeader
+{
+	align(1):
+	uint nameOffset;
+	ElfSectionType type;
+	ElfSectionFlags flags;
+	ulong dataVaddr;
+	ulong dataOffset;
+	ulong size;
+	uint link;
+	uint info;
+	ulong alignment;
+	ulong entsize;
 }

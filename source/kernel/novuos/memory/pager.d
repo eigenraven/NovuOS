@@ -27,7 +27,7 @@ struct PagePML4E
     alias NX  =BitField!(ulong, field, 1, 63); /// No-execute
 }
 static assert(PagePML4E.sizeof == 8);
-alias PageTable = align(4096) PagePML4E[512];
+alias StaticPageTable = align(4096) PagePML4E[512];
 
 struct PagePDPE
 {
@@ -123,7 +123,7 @@ nothrow:
 @nogc:
 
 /// Initial paging structures setup (operates in 1:1 mapping mode)
-void SetupPageTable_Identity(PagePML4E[512] pageTable)
+void SetupPageTable_Identity(PagePML4E[] pageTable)
 {
 	// zero all
 	for(ushort i=0;i<512;i++)
@@ -156,7 +156,7 @@ void GetAddressPage(const(void)* VirtAddr, PageStructureIndices* psi)
 }
 
 /// Get the page level 4 (PML4E) entry for a given virtual address
-PagePML4E* GetPageL4(PagePML4E[512] pageTable, const(void)* VirtAddr)
+PagePML4E* GetPageL4(PagePML4E[] pageTable, const(void)* VirtAddr)
 {
 	// bits 39..47
 	ulong RAddr = cast(ulong)(VirtAddr);
@@ -165,7 +165,7 @@ PagePML4E* GetPageL4(PagePML4E[512] pageTable, const(void)* VirtAddr)
 }
 
 /// Get the page level 3 (PDPE) entry for a given virtual address
-PagePDPE* GetPageL3(PagePML4E[512] pageTable, const(void)* VirtAddr)
+PagePDPE* GetPageL3(PagePML4E[] pageTable, const(void)* VirtAddr)
 {
 	// bits 30..38
 	PagePML4E* page4 = GetPageL4(pageTable, VirtAddr);
