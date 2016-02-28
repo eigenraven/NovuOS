@@ -5,17 +5,17 @@ static this()
     defaultOptions.dCompiler = "ldc2";
 }
 
-enum DFLAGS_FREESTANDING = `-mtriple=x86_64-unknown-linux-elf -disable-red-zone -Iuefi-d/source -Isource/uefiloader/dsrc -nogc -defaultlib= -debuglib= -code-model=large -mattr=+sse,+sse2,-sse3`;
+enum DFLAGS_FREESTANDING = `-mtriple=x86_64-unknown-linux-elf -relocation-model=pic -disable-red-zone -Iuefi-d/source -Isource/uefiloader/dsrc -nogc -defaultlib= -debuglib= -code-model=large -mattr=+sse,+sse2,-sse3`;
 
 enum UEFI_DC = `ldc2 -mtriple=x86_64-unknown-windows-coff -disable-red-zone -boundscheck=off -nogc -mattr=-sse,-sse2,-sse3 -defaultlib= -debuglib= -code-model=large -Iuefi-d/source -Isource/kernel -Isource/uefiloader/dsrc -Iuefi-d/source -c `;
-enum UEFI_LD = `x86_64-w64-mingw32-gcc -Wl,--gc-sections -nostdlib -Wl,-dll -shared -Wl,--subsystem,10 -e efi_main `;
+enum UEFI_LD = `x86_64-w64-mingw32-gcc -Wl,--gc-sections -nostdlib -Wl,-dll -shared -Bsymbolic -Wl,--subsystem,10 -e efi_main `;
 
 const uefi_obj_btypes = Target(`$project/output/uefi_btypes.obj`,
-    UEFI_DC ~ `-of=$out $in`, Target(`$project/source/kernel/novuos/basictypes.d`));
+    UEFI_DC ~ `-g -of=$out $in`, Target(`$project/source/kernel/novuos/basictypes.d`));
 const uefi_obj_pager = Target(`$project/output/uefi_pager.obj`,
-    UEFI_DC ~ `-of=$out $in`, Target(`$project/source/kernel/novuos/memory/pager.d`));
+    UEFI_DC ~ `-g -of=$out $in`, Target(`$project/source/kernel/novuos/memory/pager.d`));
 const uefi_obj_dmain = Target(`$project/output/uefi_dmain.obj`,
-    UEFI_DC ~ `-of=$out $in`, Target(`$project/source/uefiloader/dsrc/deficode.d`));
+    UEFI_DC ~ `-g -of=$out $in`, Target(`$project/source/uefiloader/dsrc/deficode.d`));
 const uefi_app = Target(`$project/output/BOOTX64.EFI`,
     UEFI_LD ~ `-o $out $in -lgcc`, [uefi_obj_dmain, uefi_obj_pager, uefi_obj_btypes]);
 

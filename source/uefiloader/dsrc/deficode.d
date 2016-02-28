@@ -607,7 +607,9 @@ extern (C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE* System
     BS.SetWatchdogTimer(0, 0, 0, null);
     LoadProtocols();
     SetVideoMode(1024, 768);
-    ShowBootStringLn("NovuOS UEFI bootloader"w);
+	ShowBootString("Image base: ");
+	ShowBootNumberX(cast(int)(LIP.ImageBase));
+    ShowBootStringLn("\r\nNovuOS UEFI bootloader"w);
 
     ShowBootString("Video mode: "w);
     ShowBootNumber(BootData.FB.w);
