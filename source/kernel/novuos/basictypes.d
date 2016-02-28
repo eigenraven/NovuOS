@@ -10,7 +10,7 @@ template BitField(Valtype, alias sym, int numbits, int shift_)
     {
         return cast(Valtype)((sym&mask)>>shift_);
     }
-    public void value(Valtype nw)
+    public void value(Valtype nw) nothrow @nogc @safe
     {
         sym = (sym&rmask) | ((nw&shmask)<<shift_);
     }
