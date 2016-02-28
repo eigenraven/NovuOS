@@ -26,6 +26,7 @@ struct PagePML4E
     alias AvailLong = BitField!(ulong, field, 11, 52); /// Available bits
     alias NX = BitField!(ulong, field, 1, 63); /// No-execute
 }
+
 alias StaticPageTable = align(4096) PagePML4E[512];
 
 struct PagePDPE

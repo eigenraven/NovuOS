@@ -22,7 +22,7 @@ __gshared
     ubyte[] KernelImage;
     ulong KernelStackPhys;
     ulong KernelStackPtr;
-	ulong KernelEntryPoint;
+    ulong KernelEntryPoint;
     enum KernelStackSize = 4; // in 4KiB units
     ubyte* PageTables;
     size_t PagesSize;
@@ -371,7 +371,7 @@ void AllocateKernelImage()
         {
         }
     }
-	KernelEntryPoint = ehdr.entryPoint;
+    KernelEntryPoint = ehdr.entryPoint;
     ElfProgramHeader* eph = cast(ElfProgramHeader*)(KernelImage.ptr + ehdr.programHeaderPos);
     ElfProgramHeader* sections = cast(ElfProgramHeader*)(KernelImage.ptr + ehdr.programHeaderPos);
     size_t sect = ehdr.programHeaderEntrySize;
@@ -528,7 +528,7 @@ void AllocateKernelImage()
         {
             PagePTE* pte = getPage(ks.vptr + page * 4096);
             pte.Addr.value = cast(ulong)(ks.pptr + page * 4096) >> pte.Addr.shift;
-			pte.NX.value = 0;
+            pte.NX.value = 0;
         }
     }
     // kernel stack (align+allocate)
@@ -537,7 +537,7 @@ void AllocateKernelImage()
     {
         PagePTE* pte = getPage(cast(void*)(KernelStackPtr + page * 4096));
         pte.Addr.value = cast(ulong)(KernelStackPhys + page * 4096) >> pte.Addr.shift;
-		pte.NX.value = 0;
+        pte.NX.value = 0;
     }
     ShowBootStringLn("Pages allocated OK");
 }
@@ -559,21 +559,23 @@ void ExecuteKernel()
     // kernel signature: extern(C) void kmain(OSBootData* bootdata) @nogc nothrow
     ulong kmain = KernelEntryPoint;
     // paging & jump
-    EFI_STATUS status = ST.RuntimeServices.SetVirtualAddressMap(MemmapSize, MemmapDescriptorSize,
-        MemmapDescriptorVersion, Memmap);
-	if(status!=0)
-	{
-		FillStatus(0x00770077+cast(int)status);
-		while(1){}
-	}
+    EFI_STATUS status = ST.RuntimeServices.SetVirtualAddressMap(MemmapSize,
+        MemmapDescriptorSize, MemmapDescriptorVersion, Memmap);
+    if (status != 0)
+    {
+        FillStatus(0x00770077 + cast(int) status);
+        while (1)
+        {
+        }
+    }
     ulong ptptr = cast(ulong)(PageTables);
     ulong bdptr = cast(ulong)(&BootData);
     ulong ksptr = cast(ulong)(KernelStackPtr);
-	ksptr += KernelStackSize * 4096 - 1;
-	FillStatus(0x000000FF);
+    ksptr += KernelStackSize * 4096 - 1;
+    FillStatus(0x000000FF);
     asm nothrow @nogc
     {
-		cli;
+        cli;
         mov R11, ptptr;
         mov R12, ksptr;
         mov R13, bdptr;
@@ -589,10 +591,10 @@ void ExecuteKernel()
         mov RSP, ksptr;
         mov RAX, kmain;
         jmp RAX;
-		xloop:
-		cli;
-		hlt;
-		jmp xloop;
+    xloop:
+        cli;
+        hlt;
+        jmp xloop;
     }
 }
 
@@ -629,13 +631,13 @@ extern (C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE* System
     ShowBootStringLn("Enabling SSE"w);
     EnableSSE();
     ShowBootStringLn("Executing OS image"w);
-	ShowBootString("Address: ");
-	ShowBootNumberX(cast(int)(KernelEntryPoint >> 32));
-	ShowBootNumberX(cast(int)(KernelEntryPoint & 0xFFFFFFFF));
-	FillStatus(0x00FF0000);
-	UpdateMemoryMap();
+    ShowBootString("Address: ");
+    ShowBootNumberX(cast(int)(KernelEntryPoint >> 32));
+    ShowBootNumberX(cast(int)(KernelEntryPoint & 0xFFFFFFFF));
+    FillStatus(0x00FF0000);
+    UpdateMemoryMap();
     CheckEfiCode(BS.ExitBootServices(ImageHandle_, MemmapKey), "Exitting boot services");
-	FillStatus(0x0000FF00);
+    FillStatus(0x0000FF00);
     ExecuteKernel();
     while (1)
     {
