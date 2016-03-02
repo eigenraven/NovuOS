@@ -490,7 +490,7 @@ void AllocateKernelImage()
 
     ShowBootStringLn("Kernel image allocated OK");
     // first 4 megabytes: identity
-    for (ulong addr = 0; addr < 0x40000; addr += 0x4000)
+    for (ulong addr = 0; addr < 0x400000; addr += 0x1000)
     {
         getPage(cast(void*) addr);
     }
@@ -588,9 +588,10 @@ void ExecuteKernel()
         xor RDX, RDX;
         xor RCX, RCX;
         xor R8, R8;
+		mov CR2, R8;
         mov RSP, ksptr;
-        mov RAX, kmain;
-        jmp RAX;
+        mov RAX, 0xFFFFFFF8000000B0;
+        call RAX;
     xloop:
         cli;
         hlt;
@@ -600,6 +601,7 @@ void ExecuteKernel()
 
 extern (C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE* SystemTable)
 {
+	ulong mainptr = cast(ulong)(cast(void*)(&efi_main));
     ImageHandle = ImageHandle_;
     ST = SystemTable;
     BS = ST.BootServices;
@@ -609,6 +611,8 @@ extern (C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE* System
     SetVideoMode(1024, 768);
 	ShowBootString("Image base: ");
 	ShowBootNumberX(cast(int)(LIP.ImageBase));
+	ShowBootString("\r\nefi_main: ");
+	ShowBootNumberX(cast(int)(mainptr));
     ShowBootStringLn("\r\nNovuOS UEFI bootloader"w);
 
     ShowBootString("Video mode: "w);
