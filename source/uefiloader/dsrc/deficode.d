@@ -5,6 +5,7 @@ import uefi.protocols.simplefilesystem;
 import novuos.bootdata;
 import novuos.formats.elf;
 import novuos.memory.pager;
+import novuos.cpu.descriptors;
 import ldc.intrinsics;
 
 __gshared
@@ -27,6 +28,10 @@ __gshared
 	ubyte* PageTables;
 	size_t PagesSize;
 	size_t PageFree;
+	GDTDescriptor gdtPtr;
+	GDTEntry[4] gdtTable;
+	IDTDescriptor idtPtr;
+	IDTEntry[256] idtTable;
 
 	EFI_MEMORY_DESCRIPTOR* Memmap;
 	UINTN MemmapSize = 0, MemmapDescriptorSize, MemmapKey, LastMemmapPages;
@@ -38,6 +43,33 @@ extern (C) void* _tls_index = null;
 
 @nogc:
 nothrow:
+
+void simpleInterrupt0Handler() nothrow @nogc
+{
+	asm nothrow @nogc
+	{
+		naked;
+	int0loop:
+		cli;
+		hlt;
+		jmp int0loop;
+		iret;
+	}
+}
+
+void simpleInterrupt1Handler() nothrow @nogc
+{
+	asm nothrow @nogc
+	{
+		naked;
+		pop rax;
+	int1loop:
+		cli;
+		hlt;
+		jmp int1loop;
+		iret;
+	}
+}
 
 extern (C) void _d_assert_msg(string msg, string file, uint line)
 {
@@ -413,6 +445,12 @@ void AllocateKernelImage()
 	ulong _tmp = KernelStackSize * 4096;
 	AllocPages(&_tmp, cast(ubyte**)(&KernelStackPhys));
 	AllocPages(&PagesSize, &PageTables);
+	{
+		ulong* kstack = cast(ulong*)(KernelStackPhys);
+		kstack [0] = 0;
+		kstack [1] = 0;
+		kstack [KernelStackSize * 512 - 1] = 0;
+	}
 	PageFree = 4096;
 	FetchMemoryMap();
 	setupPageTableIdentity((cast(PagePML4E*) PageTables)[0 .. 512]);
@@ -571,7 +609,7 @@ void ExecuteKernel()
 	ulong ptptr = cast(ulong)(PageTables);
 	ulong bdptr = cast(ulong)(&BootData);
 	ulong ksptr = cast(ulong)(KernelStackPtr);
-	ksptr += KernelStackSize * 4096 - 1;
+	ksptr += KernelStackSize * 4096 - 128;
 	FillStatus(0x000000FF);
 	asm nothrow @nogc
 	{
@@ -591,7 +629,12 @@ void ExecuteKernel()
 		xor R8, R8;
 		mov CR2, R8;
 		mov RSP, R12;
+		mov RBP, R12;
 		mov RAX, R10;
+		push RBP;
+		push RSP;
+		pop R9;
+		pop R9;
 		andps XMM1, XMM1;
 		jmp RAX;
 	xloop:
@@ -632,8 +675,31 @@ extern (C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE* System
 		ShowBootStringLn("Press key..."w);
 		ST.ConIn.Reset(ST.ConIn, FALSE);
 		EFI_INPUT_KEY Key = void;
+		long DebugExit = 0;
+		asm nothrow @nogc
+		{
+			xor R14, R14;
+		}
 		while (ST.ConIn.ReadKeyStroke(ST.ConIn, &Key) == EFI_NOT_READY)
 		{
+			asm nothrow @nogc
+			{
+				mov DebugExit, R14;
+				cmp R14, 1;
+				je out_dbg;
+			}
+		}
+		if (DebugExit > 0)
+			ShowBootStringLn("Debug exit");
+	out_dbg:
+		if (DebugExit > 0)
+		{
+			asm nothrow @nogc
+			{
+			loop_dbg:
+				cmp R14, 0;
+				jne loop_dbg;
+			}
 		}
 	}
 	ShowBootStringLn("Enabling SSE"w);
