@@ -429,9 +429,9 @@ void AllocateKernelImage()
             p4.Addr.value = cast(ulong)(PageTables + PageFree) >> p4.Addr.shift;
             *cast(ulong*)(PageTables + PageFree) = 0;
             PageFree += 4096;
-            ShowBootString("New PML4E for ");
-            ShowBootNumberX(cast(int) psi.Level4);
-            ShowBootString("\r\n");
+            //ShowBootString("New PML4E for ");
+            //ShowBootNumberX(cast(int) psi.Level4);
+            //ShowBootString("\r\n");
             p4.P.value = 1;
         }
         PagePDPE* p3 = cast(PagePDPE*)(p4.Addr.value << p4.Addr.shift);
@@ -442,9 +442,9 @@ void AllocateKernelImage()
             p3.Addr.value = cast(ulong)(PageTables + PageFree) >> p3.Addr.shift;
             *cast(ulong*)(PageTables + PageFree) = 0;
             PageFree += 4096;
-            ShowBootString("New PDPE for ");
-            ShowBootNumberX(cast(int) psi.Level3);
-            ShowBootString("\r\n");
+            //ShowBootString("New PDPE for ");
+            //ShowBootNumberX(cast(int) psi.Level3);
+            //ShowBootString("\r\n");
             p3.P.value = 1;
         }
         PagePDE_4k* p2 = cast(PagePDE_4k*)(p3.Addr.value << p3.Addr.shift);
@@ -455,9 +455,9 @@ void AllocateKernelImage()
             p2.Addr.value = cast(ulong)(PageTables + PageFree) >> p2.Addr.shift;
             *cast(ulong*)(PageTables + PageFree) = 0;
             PageFree += 4096;
-            ShowBootString("New PDE for ");
-            ShowBootNumberX(cast(int) psi.Level2);
-            ShowBootString("\r\n");
+            //ShowBootString("New PDE for ");
+            //ShowBootNumberX(cast(int) psi.Level2);
+            //ShowBootString("\r\n");
             p2.P.value = 1;
         }
         PagePTE* p1 = cast(PagePTE*)(p2.Addr.value << p2.Addr.shift);
@@ -490,7 +490,7 @@ void AllocateKernelImage()
 
     ShowBootStringLn("Kernel image allocated OK");
     // first 4 megabytes: identity
-    for (ulong addr = 0; addr < 0x40000; addr += 0x4000)
+    for (ulong addr = 0; addr < 0x400000; addr += 0x1000)
     {
         getPage(cast(void*) addr);
     }
@@ -584,15 +584,14 @@ void ExecuteKernel()
         mov CR4, R14;
         mov CR3, R11;
 
-		mov R15, 0xDEADBEEF;
         xor RSI, RSI;
         xor RDX, RDX;
         xor RCX, RCX;
         xor R8, R8;
+		mov CR2, R8;
         mov RSP, ksptr;
-        mov RAX, kmain;
-		andps XMM0, XMM0;
-        jmp RAX;
+        mov RAX, 0xFFFFFFF8000000B0;
+        call RAX;
     xloop:
         cli;
         hlt;
@@ -600,10 +599,9 @@ void ExecuteKernel()
     }
 }
 
-//extern(C) ulong etext;
-
 extern (C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE* SystemTable)
 {
+	ulong mainptr = cast(ulong)(cast(void*)(&efi_main));
     ImageHandle = ImageHandle_;
     ST = SystemTable;
     BS = ST.BootServices;
@@ -613,8 +611,8 @@ extern (C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE* System
     SetVideoMode(1024, 768);
 	ShowBootString("Image base: ");
 	ShowBootNumberX(cast(int)(LIP.ImageBase));
-	//ShowBootString("End of text: ");
-	//ShowBootNumberX(cast(int)(etext));
+	ShowBootString("\r\nefi_main: ");
+	ShowBootNumberX(cast(int)(mainptr));
     ShowBootStringLn("\r\nNovuOS UEFI bootloader"w);
 
     ShowBootString("Video mode: "w);
