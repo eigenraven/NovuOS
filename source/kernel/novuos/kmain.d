@@ -30,9 +30,9 @@ extern (C) void kmain() @nogc nothrow
 		xorps XMM0, XMM0;
 		xorps XMM1, XMM1;
 		xorps XMM2, XMM2;
-		mov bootData, R13;
-		mov ptPhptr, R11;
-		mov ksPtr, R12;
+		mov bootData[RBP], R13;
+		mov ptPhptr[RBP], R11;
+		mov ksPtr[RBP], R12;
 	}
 	FillStatus(bootData, 0x00FF00FF);
 	asm nothrow @nogc

@@ -5,7 +5,7 @@ static this()
 	defaultOptions.dCompiler = "ldc2";
 }
 
-enum DFLAGS_FREESTANDING = `-mtriple=x86_64-unknown-linux-elf -disable-red-zone -Iuefi-d/source -Isource/uefiloader/dsrc -nogc -defaultlib= -debuglib= -code-model=large -mattr=+sse,+sse2,-sse3`;
+enum DFLAGS_FREESTANDING = `-g -mtriple=x86_64-unknown-linux-elf -disable-red-zone -Iuefi-d/source -Isource/uefiloader/dsrc -nogc -defaultlib= -debuglib= -code-model=large -mattr=+sse,+sse2,-sse3`;
 
 enum UEFI_DC = `ldc2 -mtriple=x86_64-unknown-windows-coff -disable-red-zone -boundscheck=off -nogc -mattr=-sse,-sse2,-sse3 -defaultlib= -debuglib= -code-model=large -Iuefi-d/source -Isource/kernel -Isource/uefiloader/dsrc -Iuefi-d/source -c `;
 enum UEFI_LD = `x86_64-w64-mingw32-gcc -Wl,--gc-sections -nostdlib -Wl,-dll -shared -Bsymbolic -Wl,--subsystem,10  -Wl,--file-alignment=0x1000 -Wl,--section-alignment=0x1000 -e efi_main `;

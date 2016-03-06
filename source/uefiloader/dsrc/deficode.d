@@ -5,7 +5,6 @@ import uefi.protocols.simplefilesystem;
 import novuos.bootdata;
 import novuos.formats.elf;
 import novuos.memory.pager;
-import novuos.cpu.descriptors;
 import ldc.intrinsics;
 
 __gshared
@@ -28,10 +27,6 @@ __gshared
 	ubyte* PageTables;
 	size_t PagesSize;
 	size_t PageFree;
-	GDTDescriptor gdtPtr;
-	GDTEntry[4] gdtTable;
-	IDTDescriptor idtPtr;
-	IDTEntry[256] idtTable;
 
 	EFI_MEMORY_DESCRIPTOR* Memmap;
 	UINTN MemmapSize = 0, MemmapDescriptorSize, MemmapKey, LastMemmapPages;
@@ -43,33 +38,6 @@ extern (C) void* _tls_index = null;
 
 @nogc:
 nothrow:
-
-void simpleInterrupt0Handler() nothrow @nogc
-{
-	asm nothrow @nogc
-	{
-		naked;
-	int0loop:
-		cli;
-		hlt;
-		jmp int0loop;
-		iret;
-	}
-}
-
-void simpleInterrupt1Handler() nothrow @nogc
-{
-	asm nothrow @nogc
-	{
-		naked;
-		pop rax;
-	int1loop:
-		cli;
-		hlt;
-		jmp int1loop;
-		iret;
-	}
-}
 
 extern (C) void _d_assert_msg(string msg, string file, uint line)
 {
@@ -576,6 +544,12 @@ void AllocateKernelImage()
 		PagePTE* pte = getPage(cast(void*)(KernelStackPtr + page * 4096));
 		pte.Addr.value = cast(ulong)(KernelStackPhys + page * 4096) >> pte.Addr.shift;
 		pte.NX.value = 0;
+	}
+	// framebuffer
+	uint* pxaddr = BootData.FB.pixels;
+	for (ulong addr = 0; addr <= BootData.FB.stride * BootData.FB.h; addr += 512)
+	{
+		getPage(cast(void*)(pxaddr + addr));
 	}
 	ShowBootStringLn("Pages allocated OK");
 }
