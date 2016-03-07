@@ -11,9 +11,9 @@ extern (C) void _d_dso_registry(void* data)
 
 void FillStatus(OSBootData* bootData, uint color) @nogc nothrow
 {
-	foreach (int ix; 256 .. 300)
+	foreach (int ix; 0 .. cast(int)bootData.FB.w)
 	{
-		foreach (int iy; 32 .. 76)
+		foreach (int iy; 0 .. cast(int)bootData.FB.h)
 		{
 			bootData.FB.pixels[iy * bootData.FB.stride + ix] = color;
 		}
@@ -35,6 +35,15 @@ extern (C) void kmain() @nogc nothrow
 		mov ksPtr[RBP], R12;
 	}
 	FillStatus(bootData, 0x00FF00FF);
+	//EFI_TIME tm;
+	//bootData.ST.RuntimeServices.GetTime(&tm, null);
+	uint color = 0;
+	while(true)
+	{
+		color+= 0x070301;
+		color &= 0xFFFFFF;
+		FillStatus(bootData, color);
+	}
 	asm nothrow @nogc
 	{
 	xloop:
