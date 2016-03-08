@@ -4,21 +4,8 @@ import novuos.basictypes;
 import novuos.bootdata;
 import novuos.memory.pager;
 import novuos.formats.elf;
-
-extern (C) void _d_dso_registry(void* data)
-{
-}
-
-void FillStatus(OSBootData* bootData, uint color) @nogc nothrow
-{
-	foreach (int ix; 0 .. cast(int)bootData.FB.w)
-	{
-		foreach (int iy; 0 .. cast(int)bootData.FB.h)
-		{
-			bootData.FB.pixels[iy * bootData.FB.stride + ix] = color;
-		}
-	}
-}
+import novuos.gfx.framebuffer;
+import confont_0;
 
 extern (C) void kmain() @nogc nothrow
 {
@@ -34,16 +21,18 @@ extern (C) void kmain() @nogc nothrow
 		mov ptPhptr[RBP], R11;
 		mov ksPtr[RBP], R12;
 	}
-	FillStatus(bootData, 0x00FF00FF);
-	//EFI_TIME tm;
-	//bootData.ST.RuntimeServices.GetTime(&tm, null);
-	uint color = 0;
+
+	Framebuffer fb;
+	fb.initFromBootdata(bootData);
+	fb.clear();
+	
+	ubyte c = 0;
 	while(true)
 	{
-		color+= 0x070301;
-		color &= 0xFFFFFF;
-		FillStatus(bootData, color);
+		c++;
+		fb.clearToColor(c,c,c);
 	}
+	
 	asm nothrow @nogc
 	{
 	xloop:

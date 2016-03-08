@@ -11,6 +11,7 @@ enum BootFramebufferFormat
 
 struct BootFramebuffer
 {
+	@disable this();
 	long npixels;
 	int w, h;
 	int stride;
@@ -20,6 +21,7 @@ struct BootFramebuffer
 
 struct OSBootData
 {
+	@disable this();
 	EFI_SYSTEM_TABLE* ST;
 	EFI_GRAPHICS_OUTPUT_PROTOCOL* GOP;
 	BootFramebuffer FB;

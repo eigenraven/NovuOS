@@ -9,8 +9,5 @@
 		"kubasz"
 	],
 	"copyright": "Copyright C kubasz",
-	"targetType": "executable",
-	"preBuildCommands": [
-		"false"
-	]
+	"targetType": "executable"
 }

@@ -4,6 +4,7 @@ output/*
 compile_commands.json
 *.orig
 *.pyc
+*.elf
 
 # Created by https://www.gitignore.io/api/assembler,intellij,d,eclipse,linux,visualstudiocode,visualstudio,ninja,java,windows
 ### Assembler ###

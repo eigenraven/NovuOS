@@ -14,16 +14,21 @@ enum FramebufferFormat : ubyte
 struct Framebuffer
 {
 	ubyte* pixels;
+	uint* ipixels;
 	size_t width, height, stride;
 	FramebufferFormat format;
+
+	nothrow:
+	@nogc:
 
 	void initFromBootdata(OSBootData* bd)
 	{
 		pixels = cast(ubyte*) bd.FB.pixels;
+		ipixels = cast(uint*) pixels;
 		width = bd.FB.w;
 		height = bd.FB.h;
 		stride = bd.FB.stride;
-		switch (bd.FB.format)
+		switch (bd.FB.pformat)
 		{
 		case BootFramebufferFormat.RGB:
 			format = FramebufferFormat.RGB32;
@@ -40,30 +45,29 @@ struct Framebuffer
 	void clear()
 	{
 		uint* px = cast(uint*) pixels;
-		foreach (size_t i; 0 .. stride * h)
+		foreach (size_t i; 0 .. stride * height)
 		{
 			px[i] = 0;
 		}
 	}
-	
+
 	void clearToColor(ubyte R, ubyte G, ubyte B)
 	{
 		uint color;
 		switch (format) with (FramebufferFormat)
 		{
 		case RGB32:
-			color = R<<16 + G<<8 + B;
+			color = R << 16 + G << 8 + B;
 			break;
 		case BGR32:
-			color = B<<16 + G<<8 + R;
+			color = B << 16 + G << 8 + R;
 			break;
 		default:
 			break;
 		}
-		uint* px = cast(uint*) pixels;
-		foreach (size_t i; 0 .. stride * h)
+		foreach (size_t i; 0 .. stride * height)
 		{
-			px[i] = color;
+			ipixels[i] = color;
 		}
 	}
 
@@ -84,6 +88,45 @@ struct Framebuffer
 			break;
 		default:
 			break;
+		}
+	}
+
+	/// Draw monochromatic data bitmap (8 pixels per byte) with a specified color
+	void drawBitmap(ubyte* src, size_t src_x, size_t src_y, size_t w, size_t h,
+		size_t src_stride, size_t dst_x, size_t dst_y, ubyte R, ubyte G, ubyte B)
+	{
+		uint color;
+		switch (format) with (FramebufferFormat)
+		{
+		case RGB32:
+			color = R << 16 + G << 8 + B;
+			break;
+		case BGR32:
+			color = B << 16 + G << 8 + R;
+			break;
+		default:
+			break;
+		}
+		size_t limy = dst_y + h;
+		if (limy > height)
+		{
+			limy = height;
+		}
+		size_t limx = dst_x + w;
+		if (limx > width)
+		{
+			limx = width;
+		}
+		for (size_t dy = dst_y, sy = src_y; dy < limy; dy++, sy++)
+		{
+			for (size_t dx = dst_x, sx = src_x; dx < limx; dx++, sx++)
+			{
+				ubyte pix = src[src_stride * sy + (sx >> 3)] & (1 << (sx & 7));
+				if (pix > 0)
+				{
+					ipixels[stride * dy + dx] = color;
+				}
+			}
 		}
 	}
 

@@ -12,6 +12,7 @@ enum PageSize : ubyte
 
 struct PagePML4E
 {
+	@disable this();
 	ulong field; /// Raw field
 
 	alias P = BitField!(ulong, field, 1, 0); /// Present
@@ -31,6 +32,7 @@ alias StaticPageTable = align(4096) PagePML4E[512];
 
 struct PagePDPE
 {
+	@disable this();
 	ulong field; /// Raw field
 
 	alias P = BitField!(ulong, field, 1, 0); /// Present
@@ -48,6 +50,7 @@ struct PagePDPE
 
 struct PagePDE_4k
 {
+	@disable this();
 	ulong field; /// Raw field
 
 	alias P = BitField!(ulong, field, 1, 0); /// Present
@@ -65,6 +68,7 @@ struct PagePDE_4k
 
 struct PagePDE_2m
 {
+	@disable this();
 	ulong field; /// Raw field
 
 	alias P = BitField!(ulong, field, 1, 0); /// Present
@@ -85,6 +89,7 @@ struct PagePDE_2m
 
 struct PagePTE
 {
+	@disable this();
 	ulong field; /// Raw field
 
 	alias P = BitField!(ulong, field, 1, 0); /// Present
@@ -130,7 +135,7 @@ void setupPageTableIdentity(PagePML4E[] pageTable)
 	// zero all
 	for (ushort i = 0; i < 512; i++)
 	{
-		pageTable[i] = PagePML4E(0);
+		pageTable[i].field = 0;
 	}
 	// recursive mapping
 	pageTable[PageRecursiveIdx].Addr.value = cast(ulong)(pageTable.ptr) >> pageTable[
@@ -157,10 +162,11 @@ T* pageAddr(T)(const(T)* a)
 
 struct PageStructureIndices
 {
-	ushort Level4;
-	ushort Level3;
-	ushort Level2;
-	ushort Level1;
+	@disable this();
+	ushort Level4 = void;
+	ushort Level3 = void;
+	ushort Level2 = void;
+	ushort Level1 = void;
 }
 
 void getAddressPage(const(void)* VirtAddr, PageStructureIndices* psi)
