@@ -11,7 +11,6 @@ enum BootFramebufferFormat
 
 struct BootFramebuffer
 {
-	@disable this();
 	long npixels;
 	int w, h;
 	int stride;

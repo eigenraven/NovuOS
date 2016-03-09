@@ -21,3 +21,4 @@ for line in lsect:
     pass
 pass
 gdb.execute(args)
+gdb.execute("add-symbol-file output/novuos.elf 0xfffffff800000000")

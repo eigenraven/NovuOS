@@ -5,6 +5,7 @@ import novuos.bootdata;
 import novuos.memory.pager;
 import novuos.formats.elf;
 import novuos.gfx.framebuffer;
+import novuos.gfx.fbcon;
 import confont_0;
 
 extern (C) void kmain() @nogc nothrow
@@ -25,13 +26,13 @@ extern (C) void kmain() @nogc nothrow
 	Framebuffer fb;
 	fb.initFromBootdata(bootData);
 	fb.clear();
-	
-	ubyte c = 0;
-	while(true)
-	{
-		c++;
-		fb.clearToColor(c,c,c);
-	}
+	initFbconCache();
+	FramebufferConsole fbcon = void;
+	fbcon.fb = &fb;
+	//fbcon.putCharAbs('a', 32, 32, 0, 255, 0);
+	ConfontChar *chr = &confont_0_chars[0];
+	//fb.drawBitmap(confont_0_bits.ptr, chr.x, chr.y, chr.width, chr.height, confont_0_width/8, 32+chr.xoffset, 32+chr.yoffset, 255, 255, 255);
+	fb.clearToColor(0,255,0);
 	
 	asm nothrow @nogc
 	{

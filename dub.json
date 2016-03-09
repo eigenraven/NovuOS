@@ -3,7 +3,8 @@
 	"description": "NovuOS",
 	"importPaths": [
 		"source/kernel",
-		"source/uefiloader/dsrc"
+		"source/uefiloader/dsrc",
+		"resources/font"
 	],
 	"authors": [
 		"kubasz"

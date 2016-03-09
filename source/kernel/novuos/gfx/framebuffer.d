@@ -18,13 +18,13 @@ struct Framebuffer
 	size_t width, height, stride;
 	FramebufferFormat format;
 
-	nothrow:
-	@nogc:
+nothrow:
+@nogc:
 
 	void initFromBootdata(OSBootData* bd)
 	{
 		pixels = cast(ubyte*) bd.FB.pixels;
-		ipixels = cast(uint*) pixels;
+		ipixels = bd.FB.pixels;
 		width = bd.FB.w;
 		height = bd.FB.h;
 		stride = bd.FB.stride;
@@ -57,10 +57,10 @@ struct Framebuffer
 		switch (format) with (FramebufferFormat)
 		{
 		case RGB32:
-			color = R << 16 + G << 8 + B;
+			color = (R << 16) + (G << 8) + B;
 			break;
 		case BGR32:
-			color = B << 16 + G << 8 + R;
+			color = (B << 16) + (G << 8) + R;
 			break;
 		default:
 			break;
@@ -92,19 +92,21 @@ struct Framebuffer
 	}
 
 	/// Draw monochromatic data bitmap (8 pixels per byte) with a specified color
-	void drawBitmap(ubyte* src, size_t src_x, size_t src_y, size_t w, size_t h,
-		size_t src_stride, size_t dst_x, size_t dst_y, ubyte R, ubyte G, ubyte B)
+	void drawBitmap(const(ubyte)* src, size_t src_x, size_t src_y, size_t w,
+		size_t h, size_t src_stride, size_t dst_x, size_t dst_y, ubyte R, ubyte G,
+		ubyte B)
 	{
 		uint color;
 		switch (format) with (FramebufferFormat)
 		{
 		case RGB32:
-			color = R << 16 + G << 8 + B;
+			color = (R << 16) + (G << 8) + B;
 			break;
 		case BGR32:
-			color = B << 16 + G << 8 + R;
+			color = (B << 16) + (G << 8) + R;
 			break;
 		default:
+			color = (R << 16) + (G << 8) + B;
 			break;
 		}
 		size_t limy = dst_y + h;
@@ -124,7 +126,7 @@ struct Framebuffer
 				ubyte pix = src[src_stride * sy + (sx >> 3)] & (1 << (sx & 7));
 				if (pix > 0)
 				{
-					ipixels[stride * dy + dx] = color;
+					ipixels[this.stride * dy + dx] = color;
 				}
 			}
 		}

@@ -9,7 +9,7 @@ import ldc.intrinsics;
 
 __gshared
 {
-	OSBootData BootData;
+	OSBootData BootData = void;
 	EFI_SYSTEM_TABLE* ST;
 	EFI_BOOT_SERVICES* BS;
 	EFI_HANDLE ImageHandle;
@@ -23,7 +23,7 @@ __gshared
 	ulong KernelStackPhys;
 	ulong KernelStackPtr;
 	ulong KernelEntryPoint;
-	enum KernelStackSize = 4; // in 4KiB units
+	enum KernelStackSize = 32; // in 4KiB units
 	ubyte* PageTables;
 	size_t PagesSize;
 	size_t PageFree;
@@ -235,7 +235,7 @@ void SetVideoMode(int maxx, int maxy)
 	{
 		pfmt = BootFramebufferFormat.RGB;
 	}
-	BootData.FB = BootFramebuffer(GOP.Mode.FrameBufferSize,
+	BootData.FB = BootFramebuffer(cast(long)GOP.Mode.FrameBufferSize,
 		bestmode.HorizontalResolution, bestmode.VerticalResolution,
 		bestmode.PixelsPerScanLine, pfmt, cast(uint*)(GOP.Mode.FrameBufferBase));
 }
@@ -424,7 +424,7 @@ void AllocateKernelImage()
 	setupPageTableIdentity((cast(PagePML4E*) PageTables)[0 .. 512]);
 	static PagePTE* getPage(const(void)* addr) nothrow @nogc
 	{
-		PageStructureIndices psi;
+		PageStructureIndices psi = void;
 		getAddressPage(addr, &psi);
 		// Check PML4E
 		PagePML4E* p4 = cast(PagePML4E*) PageTables;
