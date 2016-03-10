@@ -6,7 +6,7 @@ static this()
 	defaultOptions.isDubProject = false;
 }
 
-enum DFLAGS_FREESTANDING_ALLOWGC = `-g -mtriple=x86_64-unknown-linux-elf -disable-red-zone -Iuefi-d/source -Isource/uefiloader/dsrc -defaultlib= -debuglib= -code-model=large -mattr=+sse,+sse2,-sse3 `;
+enum DFLAGS_FREESTANDING_ALLOWGC = `-conf=ldc2.conf -g -mtriple=x86_64-unknown-linux-elf -disable-red-zone -Iuefi-d/source -Isource/uefiloader/dsrc -defaultlib= -debuglib= -code-model=large -mattr=+sse,+sse2,-sse3 `;
 enum DFLAGS_FREESTANDING = DFLAGS_FREESTANDING_ALLOWGC ~ ` -vgc -nogc`;
 
 enum UEFI_DC = `ldc2 -mtriple=x86_64-unknown-windows-coff -disable-red-zone -boundscheck=off -nogc -mattr=-sse,-sse2,-sse3 -defaultlib= -debuglib= -code-model=large -Iuefi-d/source -Isource/kernel -Isource/uefiloader/dsrc -Iuefi-d/source -c `;

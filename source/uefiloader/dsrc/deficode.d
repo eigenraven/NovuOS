@@ -5,7 +5,6 @@ import uefi.protocols.simplefilesystem;
 import novuos.bootdata;
 import novuos.formats.elf;
 import novuos.memory.pager;
-import ldc.intrinsics;
 
 __gshared
 {
@@ -337,7 +336,7 @@ void AllocPages(size_t* sz, ubyte** ptr)
 
 private void ZeroMem(ubyte[] mem)
 {
-	llvm_memset(mem.ptr, 0, mem.length, 8);
+	memset(mem.ptr, 0, mem.length);
 }
 
 void AllocateKernelImage()
@@ -404,7 +403,7 @@ void AllocateKernelImage()
 		ubyte* fptr = cast(ubyte*)(KernelImage.ptr + header.dataOffset);
 		if (header.fileSize > 0)
 		{
-			llvm_memcpy(kSects[nSects].pptr, fptr, header.fileSize, 8);
+			memcpy(kSects[nSects].pptr, fptr, header.fileSize);
 		}
 		nSects++;
 	}
@@ -644,38 +643,6 @@ extern (C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE* System
 	LoadKernelImage();
 	AllocateKernelImage();
 
-	version (all)
-	{
-		ShowBootStringLn("Press key..."w);
-		ST.ConIn.Reset(ST.ConIn, FALSE);
-		EFI_INPUT_KEY Key = void;
-		long DebugExit = 0;
-		asm nothrow @nogc
-		{
-			xor R14, R14;
-		}
-		while (ST.ConIn.ReadKeyStroke(ST.ConIn, &Key) == EFI_NOT_READY)
-		{
-			asm nothrow @nogc
-			{
-				mov DebugExit, R14;
-				cmp R14, 1;
-				je out_dbg;
-			}
-		}
-		if (DebugExit > 0)
-			ShowBootStringLn("Debug exit");
-	out_dbg:
-		if (DebugExit > 0)
-		{
-			asm nothrow @nogc
-			{
-			loop_dbg:
-				cmp R14, 0;
-				jne loop_dbg;
-			}
-		}
-	}
 	ShowBootStringLn("Enabling SSE"w);
 	EnableSSE();
 	ShowBootStringLn("Executing OS image"w);
@@ -683,6 +650,15 @@ extern (C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE* System
 	ShowBootNumberX(cast(int)(KernelEntryPoint >> 32));
 	ShowBootNumberX(cast(int)(KernelEntryPoint & 0xFFFFFFFF));
 	FillStatus(0x00FF0000);
+	version (all)
+	{
+		ShowBootStringLn("Press key..."w);
+		ST.ConIn.Reset(ST.ConIn, FALSE);
+		EFI_INPUT_KEY Key = void;
+		while (ST.ConIn.ReadKeyStroke(ST.ConIn, &Key) == EFI_NOT_READY)
+		{
+		}
+	}
 	UpdateMemoryMap();
 	CheckEfiCode(BS.ExitBootServices(ImageHandle_, MemmapKey), "Exitting boot services");
 	FillStatus(0x0000FF00);

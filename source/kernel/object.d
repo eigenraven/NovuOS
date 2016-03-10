@@ -15,16 +15,17 @@ private string makeTypeInfo(T...)()
 				}";
 		template doitm(string s, t, u...)
 		{
-			static if(u.length==0)
+			static if (u.length == 0)
 			{
 				enum doitm = s ~ doit!(t);
 			}
 			else
 			{
-				enum doitm = doitm!(s~doit!(t), u);
+				enum doitm = doitm!(s ~ doit!(t), u);
 			}
 		}
-		return doitm!("",T);
+
+		return doitm!("", T);
 	}
 
 	assert(0);
@@ -73,7 +74,6 @@ extern (C)
 
 /// Based on Adam D. Ruppe's minimal D runtime:
 version = without_exceptions;
-version = without_moduleinfo;
 
 /**
 	What doesn't work:
@@ -516,6 +516,140 @@ struct ModuleInfo
 {
 	uint _flags;
 	uint _index;
+const:
+@nogc:
+nothrow:
+	private void* addrOf(int flag) pure
+	{
+		void* p = cast(void*)&this + ModuleInfo.sizeof;
+
+		if (flags & MItlsctor)
+		{
+			if (flag == MItlsctor)
+				return p;
+			p += typeof(tlsctor).sizeof;
+		}
+		if (flags & MItlsdtor)
+		{
+			if (flag == MItlsdtor)
+				return p;
+			p += typeof(tlsdtor).sizeof;
+		}
+		if (flags & MIctor)
+		{
+			if (flag == MIctor)
+				return p;
+			p += typeof(ctor).sizeof;
+		}
+		if (flags & MIdtor)
+		{
+			if (flag == MIdtor)
+				return p;
+			p += typeof(dtor).sizeof;
+		}
+		if (flags & MIxgetMembers)
+		{
+			if (flag == MIxgetMembers)
+				return p;
+			p += typeof(xgetMembers).sizeof;
+		}
+		if (flags & MIictor)
+		{
+			if (flag == MIictor)
+				return p;
+			p += typeof(ictor).sizeof;
+		}
+		if (flags & MIunitTest)
+		{
+			if (flag == MIunitTest)
+				return p;
+			p += typeof(unitTest).sizeof;
+		}
+		if (flags & MIimportedModules)
+		{
+			if (flag == MIimportedModules)
+				return p;
+			p += size_t.sizeof + *cast(size_t*) p * typeof(importedModules[0]).sizeof;
+		}
+		if (flags & MIlocalClasses)
+		{
+			if (flag == MIlocalClasses)
+				return p;
+			p += size_t.sizeof + *cast(size_t*) p * typeof(localClasses[0]).sizeof;
+		}
+		if (true || flags & MIname) // always available for now
+		{
+			if (flag == MIname)
+				return p;
+			p += strlen(cast(immutable char*) p);
+		}
+		assert(0);
+	}
+
+	@property uint index() nothrow pure
+	{
+		return _index;
+	}
+
+	@property uint flags() nothrow pure
+	{
+		return _flags;
+	}
+
+	@property void function() tlsctor() nothrow pure
+	{
+		return flags & MItlsctor ? *cast(typeof(return)*) addrOf(MItlsctor) : null;
+	}
+
+	@property void function() tlsdtor() nothrow pure
+	{
+		return flags & MItlsdtor ? *cast(typeof(return)*) addrOf(MItlsdtor) : null;
+	}
+
+	@property void* xgetMembers() nothrow pure
+	{
+		return flags & MIxgetMembers ? *cast(typeof(return)*) addrOf(MIxgetMembers) : null;
+	}
+
+	@property void function() ctor() nothrow pure
+	{
+		return flags & MIctor ? *cast(typeof(return)*) addrOf(MIctor) : null;
+	}
+
+	@property void function() dtor() nothrow pure
+	{
+		return flags & MIdtor ? *cast(typeof(return)*) addrOf(MIdtor) : null;
+	}
+
+	@property void function() ictor() nothrow pure
+	{
+		return flags & MIictor ? *cast(typeof(return)*) addrOf(MIictor) : null;
+	}
+
+	@property void function() unitTest() nothrow pure
+	{
+		return flags & MIunitTest ? *cast(typeof(return)*) addrOf(MIunitTest) : null;
+	}
+
+	@property immutable(ModuleInfo*)[] importedModules() nothrow pure
+	{
+		if (flags & MIimportedModules)
+		{
+			auto p = cast(size_t*) addrOf(MIimportedModules);
+			return (cast(immutable(ModuleInfo*)*)(p + 1))[0 .. *p];
+		}
+		return null;
+	}
+
+	@property TypeInfo_Class[] localClasses() nothrow pure
+	{
+		if (flags & MIlocalClasses)
+		{
+			auto p = cast(size_t*) addrOf(MIlocalClasses);
+			return (cast(TypeInfo_Class*)(p + 1))[0 .. *p];
+		}
+		return null;
+	}
 }
 
 class Throwable : Object
