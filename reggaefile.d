@@ -51,7 +51,7 @@ enum kernel_objs = [objectFile(SourceFile(`source/kernel/object.d`),
 		Flags(DFLAGS_FREESTANDING_ALLOWGC), KERNEL_IMPORTS, KERNEL_SIMPORTS)] ~ kObjs(
 		[`../invariant.d`,`kmain.d`, `bootdata.d`, `basictypes.d`, `memory/pager.d`,
 		`gfx/framebuffer.d`, `gfx/fbcon.d`, `formats/elf.d`, `cpu/descriptors.d`]) ~ [rObj(
-		`font/confont_0.d`)];
+		`font/confont.d`)];
 
 enum kernel_elf = Target(`output/novuos.elf`,
 		`ld -T source/kernel/linker.ld -nostdlib -nodefaultlibs -o $out $in`, kernel_objs);
