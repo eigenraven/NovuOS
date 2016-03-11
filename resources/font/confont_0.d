@@ -701,8 +701,9 @@ immutable(ubyte[8192]) confont_0_bits = invert([0xFF, 0xC0, 0x7A, 0x7D, 0x9F,
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 	0xFF]);
 
-struct ConfontChar
+align(1) struct ConfontChar
 {
+	align(1):
 	int id;
 	int x;
 	int y;
@@ -713,7 +714,7 @@ struct ConfontChar
 	int xadvance;
 }
 
-__gshared immutable(int[297 * 8]) confont_0_chbuf = [-1, 102, 78, 1, 12, 0, 0, 0, 32, 162,
+__gshared int[297 * 8] confont_0_chbuf = [-1, 102, 78, 1, 12, 0, 0, 0, 32, 162,
 	0, 6, 12, -3, 0, 6, 33, 100, 78, 1, 12, 2, 0, 6, 34, 4, 78, 3, 12, 1, 0, 6,
 	35, 244, 0, 5, 12, 0, 0, 6, 36, 250, 0, 5, 12, 0, 0, 6, 37, 0, 13, 5, 12,
 	0, 0, 6, 38, 6, 13, 5, 12, 0, 0, 6, 39, 92, 78, 1, 12, 2, 0, 6, 40, 20,
@@ -832,8 +833,10 @@ __gshared immutable(int[297 * 8]) confont_0_chbuf = [-1, 102, 78, 1, 12, 0, 0, 0
 	9604, 50, 0, 6, 12, 0, 0, 6, 9608, 8, 0, 6, 12, 0, 0, 6, 9612, 36, 78, 3,
 	12, 0, 0, 6, 9616, 40, 78, 3, 12, 3, 0, 6, 9617, 144, 13, 5, 12, 0, 0, 6,
 	9618, 211, 0, 6, 12, 0, 0, 6, 9619, 197, 0, 6, 12, 0, 0, 6];
+	
 __gshared ConfontChar* confont_0_chars;
+
 void confont_0_init() @nogc nothrow
 {
-	confont_0_chars = cast(ConfontChar*)confont_0_chbuf.ptr;
+	confont_0_chars = cast(ConfontChar*)(&confont_0_chbuf[0]);
 }

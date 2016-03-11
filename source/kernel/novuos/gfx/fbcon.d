@@ -9,7 +9,6 @@ private __gshared bool asciiCached;
 
 void initFbconCache() nothrow @nogc
 {
-	confont_0_init();
 	asciiCached = true;
 	int idx = 1;
 	for(int i=0;i<asciiCache.length;i++)
