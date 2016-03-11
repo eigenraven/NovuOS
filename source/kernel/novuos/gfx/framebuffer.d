@@ -131,5 +131,57 @@ nothrow:
 			}
 		}
 	}
+	
+	/// Draw monochromatic data bitmap (8 pixels per byte, reversed bit order) with a specified color
+	void drawBitmapR(const(ubyte)* src, size_t src_x, size_t src_y, size_t w,
+		size_t h, size_t src_stride, size_t dst_x, size_t dst_y, ubyte R, ubyte G,
+		ubyte B)
+	{
+		uint color;
+		switch (format) with (FramebufferFormat)
+		{
+		case RGB32:
+			color = (R << 16) + (G << 8) + B;
+			break;
+		case BGR32:
+			color = (B << 16) + (G << 8) + R;
+			break;
+		default:
+			color = (R << 16) + (G << 8) + B;
+			break;
+		}
+		size_t limy = dst_y + h;
+		if (limy > height)
+		{
+			limy = height;
+		}
+		size_t limx = dst_x + w;
+		if (limx > width)
+		{
+			limx = width;
+		}
+		for (size_t dy = dst_y, sy = src_y; dy < limy; dy++, sy++)
+		{
+			for (size_t dx = dst_x, sx = src_x; dx < limx; dx++, sx++)
+			{
+				ubyte pix = src[src_stride * sy + (sx >> 3)] & (1 << (7-(sx & 7)));
+				if (pix > 0)
+				{
+					ipixels[this.stride * dy + dx] = color;
+				}
+			}
+		}
+	}
+	
+	void scrollUp(uint pixels)
+	{
+		foreach(ulong cy; 0 .. height-pixels)
+		{
+			foreach(ulong cx; 0 .. width)
+			{
+				ipixels[this.stride * cy + cx] = ipixels[this.stride * (cy+pixels) + cx];
+			}
+		}
+	}
 
 }

@@ -1,2 +1,2 @@
 #!/bin/sh
-qemu-system-x86_64 -serial pty -monitor stdio -enable-kvm -display sdl -vga std -cpu qemu64 -name NovuOS -bios /usr/share/ovmf/ovmf_x64.bin -usb -usbdevice disk:format=raw:output/bootimage.img -m 1G -s -debugcon file:debug.log -global isa-debugcon.iobase=0x402 $*
+qemu-system-x86_64 -enable-kvm -serial pty -monitor stdio -display sdl -vga std -cpu kvm64,+ssse3,+sse4.1,+sse4.2,+x2apic -M q35  -name NovuOS -bios /usr/share/ovmf/ovmf_x64.bin -drive file=output/bootimage.img,format=raw,if=virtio,cache=none -m 1G -s $*

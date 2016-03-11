@@ -228,11 +228,11 @@ void SetVideoMode(int maxx, int maxy)
 	BootFramebufferFormat pfmt = void;
 	if (bestmode.PixelFormat == PixelBlueGreenRedReserved8BitPerColor)
 	{
-		pfmt = BootFramebufferFormat.BGR;
+		pfmt = BootFramebufferFormat.RGB;
 	}
 	else
 	{
-		pfmt = BootFramebufferFormat.RGB;
+		pfmt = BootFramebufferFormat.BGR;
 	}
 	BootData.FB = BootFramebuffer(cast(long)GOP.Mode.FrameBufferSize,
 		bestmode.HorizontalResolution, bestmode.VerticalResolution,
@@ -323,6 +323,7 @@ void LoadKernelImage()
 	CheckEfiCode(fp.Read(fp, &fisz, cast(void*)(KernelImage.ptr)), "Reading kimage"w);
 	fp.Close(fp);
 	RootDir.Close(RootDir);
+	ShowBootStringLn("Loaded kernel file");
 }
 
 void AllocPages(size_t* sz, ubyte** ptr)
@@ -499,6 +500,7 @@ void AllocateKernelImage()
 	{
 		getPage(cast(void*) addr);
 	}
+	ShowBootString("I");
 	// memory map entries
 	void* VMemmap = cast(void*)(Memmap);
 	for (void* vme = VMemmap; vme < (VMemmap + MemmapSize); vme += MemmapDescriptorSize)
@@ -510,6 +512,7 @@ void AllocateKernelImage()
 				EfiBootServicesData, EfiRuntimeServicesCode,
 				EfiRuntimeServicesData, EfiACPIReclaimMemory, EfiACPIMemoryNVS,
 		EfiPalCode:
+				ShowBootNumber(cast(int)me.NumberOfPages);
 				setEfiPages(me);
 			break;
 		default:
@@ -523,7 +526,9 @@ void AllocateKernelImage()
 				me.VirtualStart = cast(ulong)(kSects[si].vptr);
 			}
 		}
+		ShowBootString(".");
 	}
+	ShowBootString("M");
 	// kernel
 	for (size_t si = 0; si < nSects; si++)
 	{
@@ -535,7 +540,9 @@ void AllocateKernelImage()
 			pte.Addr.value = cast(ulong)(ks.pptr + page * 4096) >> pte.Addr.shift;
 			pte.NX.value = 0;
 		}
+		ShowBootString("k");
 	}
+	ShowBootString("K");
 	// kernel stack (align+allocate)
 	KernelStackPtr = ((KernelStackPtr >> 12) + 1) << 12;
 	for (int page = 0; page < KernelStackSize; page++)
@@ -544,13 +551,15 @@ void AllocateKernelImage()
 		pte.Addr.value = cast(ulong)(KernelStackPhys + page * 4096) >> pte.Addr.shift;
 		pte.NX.value = 0;
 	}
+	ShowBootString("S");
 	// framebuffer
 	uint* pxaddr = BootData.FB.pixels;
 	for (ulong addr = 0; addr <= BootData.FB.stride * BootData.FB.h; addr += 512)
 	{
 		getPage(cast(void*)(pxaddr + addr));
 	}
-	ShowBootStringLn("Pages allocated OK");
+	ShowBootString("F");
+	ShowBootStringLn(";Pages allocated OK");
 }
 
 void UpdateMemoryMap()
@@ -648,6 +657,7 @@ extern (C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE* System
 	ShowBootStringLn("Executing OS image"w);
 	ShowBootString("Address: ");
 	ShowBootNumberX(cast(int)(KernelEntryPoint >> 32));
+	ShowBootString(" ");
 	ShowBootNumberX(cast(int)(KernelEntryPoint & 0xFFFFFFFF));
 	FillStatus(0x00FF0000);
 	version (all)
