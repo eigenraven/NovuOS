@@ -44,27 +44,14 @@ nothrow:
 
 	void clear()
 	{
-		uint* px = cast(uint*) pixels;
 		foreach (size_t i; 0 .. stride * height)
 		{
-			px[i] = 0;
+			ipixels[i] = 0;
 		}
 	}
 
-	void clearToColor(ubyte R, ubyte G, ubyte B)
+	void clearToColor(uint color)
 	{
-		uint color;
-		switch (format) with (FramebufferFormat)
-		{
-		case RGB32:
-			color = (R << 16) + (G << 8) + B;
-			break;
-		case BGR32:
-			color = (B << 16) + (G << 8) + R;
-			break;
-		default:
-			break;
-		}
 		foreach (size_t i; 0 .. stride * height)
 		{
 			ipixels[i] = color;
@@ -90,11 +77,8 @@ nothrow:
 			break;
 		}
 	}
-
-	/// Draw monochromatic data bitmap (8 pixels per byte) with a specified color
-	void drawBitmap(const(ubyte)* src, size_t src_x, size_t src_y, size_t w,
-		size_t h, size_t src_stride, size_t dst_x, size_t dst_y, ubyte R, ubyte G,
-		ubyte B)
+	
+	uint rgbToColor(ubyte R, ubyte G, ubyte B)
 	{
 		uint color;
 		switch (format) with (FramebufferFormat)
@@ -109,6 +93,24 @@ nothrow:
 			color = (R << 16) + (G << 8) + B;
 			break;
 		}
+		return color;
+	}
+	
+	void fillRect(size_t x, size_t y, size_t w, size_t h, uint color)
+	{
+		foreach(cy; y .. y+h)
+		{
+			foreach(cx; x .. x+w)
+			{
+				ipixels[this.stride * cy + cx] = color;
+			}
+		}
+	}
+
+	/// Draw monochromatic data bitmap (8 pixels per byte) with a specified color
+	void drawBitmap(const(ubyte)* src, size_t src_x, size_t src_y, size_t w,
+		size_t h, size_t src_stride, size_t dst_x, size_t dst_y, uint color)
+	{
 		size_t limy = dst_y + h;
 		if (limy > height)
 		{
@@ -134,22 +136,8 @@ nothrow:
 	
 	/// Draw monochromatic data bitmap (8 pixels per byte, reversed bit order) with a specified color
 	void drawBitmapR(const(ubyte)* src, size_t src_x, size_t src_y, size_t w,
-		size_t h, size_t src_stride, size_t dst_x, size_t dst_y, ubyte R, ubyte G,
-		ubyte B)
+		size_t h, size_t src_stride, size_t dst_x, size_t dst_y, uint color)
 	{
-		uint color;
-		switch (format) with (FramebufferFormat)
-		{
-		case RGB32:
-			color = (R << 16) + (G << 8) + B;
-			break;
-		case BGR32:
-			color = (B << 16) + (G << 8) + R;
-			break;
-		default:
-			color = (R << 16) + (G << 8) + B;
-			break;
-		}
 		size_t limy = dst_y + h;
 		if (limy > height)
 		{

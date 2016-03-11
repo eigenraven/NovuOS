@@ -262,17 +262,6 @@ void FetchMemoryMap()
 	CheckEfiCode(Status, "Could not obtain memory map"w);
 }
 
-void FillStatus(uint color)
-{
-	foreach (int ix; 256 .. 300)
-	{
-		foreach (int iy; 32 .. 76)
-		{
-			BootData.FB.pixels[iy * BootData.FB.stride + ix] = color;
-		}
-	}
-}
-
 void EnableSSE()
 {
 	asm @nogc nothrow
@@ -583,7 +572,6 @@ void ExecuteKernel()
 		MemmapDescriptorSize, MemmapDescriptorVersion, Memmap);
 	if (status != 0)
 	{
-		FillStatus(0x00770077 + cast(int) status);
 		while (1)
 		{
 		}
@@ -592,7 +580,6 @@ void ExecuteKernel()
 	ulong bdptr = cast(ulong)(&BootData);
 	ulong ksptr = cast(ulong)(KernelStackPtr);
 	ksptr += KernelStackSize * 4096 - 128;
-	FillStatus(0x000000FF);
 	asm nothrow @nogc
 	{
 		cli;
@@ -659,8 +646,7 @@ extern (C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE* System
 	ShowBootNumberX(cast(int)(KernelEntryPoint >> 32));
 	ShowBootString(" ");
 	ShowBootNumberX(cast(int)(KernelEntryPoint & 0xFFFFFFFF));
-	FillStatus(0x00FF0000);
-	version (all)
+	version (none)
 	{
 		ShowBootStringLn("Press key..."w);
 		ST.ConIn.Reset(ST.ConIn, FALSE);
@@ -671,7 +657,6 @@ extern (C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE* System
 	}
 	UpdateMemoryMap();
 	CheckEfiCode(BS.ExitBootServices(ImageHandle_, MemmapKey), "Exitting boot services");
-	FillStatus(0x0000FF00);
 	ExecuteKernel();
 	while (1)
 	{

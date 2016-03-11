@@ -30,7 +30,10 @@ extern (C) void kmain() @nogc nothrow
 	fbcon.setColor(0x1199EE);
 	fbcon.printString(`╔═════════════════════════════════╗
 ║ NovuOS kernel console v1.0      ║
-╚═════════════════════════════════╝`d);
+╚═════════════════════════════════╝
+`d);
+	fbcon.setColor(0xEEEEEE);
+	fbcon.printString("[trace] kmain() executed\n"d);
 	asm nothrow @nogc
 	{
 	xloop:

@@ -11,7 +11,8 @@ struct FramebufferConsole
 	Framebuffer* fb;
 	ulong w, h; /// Grid size
 	ulong x, y; /// Cursor position
-	ubyte colR, colG, colB;
+	uint colFG;
+	uint colBG;
 nothrow:
 @nogc:
 	this(Framebuffer* f)
@@ -22,51 +23,48 @@ nothrow:
 		h = (fb.height - 2 * PadPixels) / CharHeight;
 		x = 0;
 		y = 0;
-		colR = 255;
-		colG = 255;
-		colB = 255;
+		colFG = fb.rgbToColor(255, 255, 255);
+		colBG = 0;
 	}
 
 	/// Draw a character on the specified x,y framebuffer coordinates
 	/// Returns: character width in grid cells
-	uint putCharAbs(dchar dch, ulong x, ulong y, ubyte R = 255, ubyte G = 255, ubyte B = 255)
+	uint putCharAbs(dchar dch, ulong x, ulong y, uint color)
 	{
 		ulong ch = cast(ulong) dch;
 		if (ch > 65536)
 			ch = 0;
 		uint sz = confont_chars[2 * ch];
 		fb.drawBitmapR(confont_bitmap.ptr + confont_chars[2 * ch + 1], 0, 0,
-			sz * 8, 16, sz, x, y, R, G, B);
+			sz * 8, 16, sz, x, y, color);
 		return sz;
 	}
 
 	/// Draw a character on the specified x,y grid coordinates
 	/// Returns: character width in grid cells
-	uint putChar(dchar dch, ulong x, ulong y, ubyte R = 255, ubyte G = 255, ubyte B = 255)
+	uint putChar(dchar dch, ulong x, ulong y, uint color)
 	{
 		return putCharAbs(dch, x * CharWidth + PadPixels, y * CharHeight + PadPixels,
-			R, G, B);
+			color);
 	}
 
 	/// Set current print color
 	void setColor(ubyte R, ubyte G, ubyte B)
 	{
-		colR = R;
-		colG = G;
-		colB = B;
+		colFG = fb.rgbToColor(R, G, B);
 	}
 	/// ditto
 	void setColor(uint RGB)
 	{
-		colB = (RGB) & 0xFF;
-		colG = (RGB >> 8) & 0xFF;
-		colR = (RGB >> 16) & 0xFF;
+		setColor((RGB >> 16) & 0xFF, (RGB >> 8) & 0xFF, (RGB) & 0xFF);
 	}
 
 	enum Command : dchar
 	{
 		Newline = '\n',
-		AfterCursorMove = 0xE500
+		AfterCursorMove = 0xE500,
+		ClearLine = 0xE501,
+		ClearScreen = 0xE502
 	}
 
 	/// Control codes
@@ -95,6 +93,15 @@ nothrow:
 				y--;
 			}
 			return true;
+		case ClearLine:
+			x = 0;
+			fb.fillRect(0, PadPixels + CharHeight*y, 0, fb.width, colBG);
+			return true;
+		case ClearScreen:
+			x=0;
+			y=0;
+			fb.clearToColor(colBG);
+			return true;
 		default:
 			return false;
 		}
@@ -105,7 +112,7 @@ nothrow:
 	{
 		if (!handleControlCode(dch))
 		{
-			x += putChar(dch, x, y, colR, colG, colB);
+			x += putChar(dch, x, y, colFG);
 			handleControlCode(Command.AfterCursorMove);
 		}
 	}
