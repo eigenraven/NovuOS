@@ -34,46 +34,9 @@ private string makeTypeInfo(T...)()
 nothrow:
 @nogc:
 
-extern (C)
-{
-	void* memcpy(void* dst, void* src, size_t n)
-	{
-		ubyte* D = cast(ubyte*) dst;
-		ubyte* S = cast(ubyte*) src;
-		while (n)
-		{
-			*D++ = *S++;
-			n--;
-		}
-		return dst;
-	}
-
-	void* memset(void* dst, int vv, size_t n)
-	{
-		ubyte* D = cast(ubyte*) dst;
-		ubyte V = cast(ubyte) vv;
-		while (n)
-		{
-			*D++ = V;
-			n--;
-		}
-		return dst;
-	}
-
-	void* memzero(void* dst, size_t n)
-	{
-		ubyte* D = cast(ubyte*) dst;
-		while (n)
-		{
-			*D++ = 0;
-			n--;
-		}
-		return dst;
-	}
-}
-
 /// Based on Adam D. Ruppe's minimal D runtime:
 version = without_exceptions;
+version = with_libc;
 
 /**
 	What doesn't work:

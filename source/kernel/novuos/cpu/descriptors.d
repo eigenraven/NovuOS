@@ -46,6 +46,19 @@ align(1):
 	ubyte access;
 	ubyte limitHighFlags;
 	ubyte baseHigh;
+
+	void limit(uint lim)
+	{
+		limitLow = lim & 0xFFFF;
+		limitHighFlags = (limitHighFlags & 0xF0) | ((lim >> 16) & 0xF);
+	}
+
+	void base(uint bas)
+	{
+		baseLow = bas & 0xFFFF;
+		baseMed = (bas >> 16) & 0xFF;
+		baseHigh = (bas >> 24) & 0xFF;
+	}
 }
 
 extern (C) struct IDTEntry
@@ -57,6 +70,18 @@ align(1):
 	ubyte typeAndAttr;
 	ushort offsetHigh;
 	uint offsetHigh64;
+
+	void offset(ulong off)
+	{
+		offsetLow = off & 0xFFFF;
+		offsetHigh = (off >> 16) & 0xFFFF;
+		offsetHigh64 = (off >> 32) & 0xFFFF_FFFF;
+	}
+	
+	alias type = BitField!(ubyte, typeAndAttr, 4, 0);
+	alias storage = BitField!(ubyte, typeAndAttr, 1, 4);
+	alias dpl = BitField!(ubyte, typeAndAttr, 2, 5);
+	alias present = BitField!(ubyte, typeAndAttr, 1, 7);
 }
 
 enum SystemSegmentType : ubyte
@@ -92,4 +117,26 @@ align(1):
 	ushort offsetHigh;
 	uint offsetHigh64;
 	uint reserved;
+}
+
+void lgdt(GDTEntry* ptr, ushort size)
+{
+	GDTDescriptor idt;
+	idt.offset = cast(size_t) ptr;
+	idt.size = size;
+	asm nothrow @nogc
+	{
+		lgdt idt;
+	}
+}
+
+void lidt(IDTEntry* ptr, ushort size)
+{
+	IDTDescriptor idt;
+	idt.offset = cast(size_t) ptr;
+	idt.size = size;
+	asm nothrow @nogc
+	{
+		lidt idt;
+	}
 }

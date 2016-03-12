@@ -47,16 +47,46 @@ auto kObjs(string[] arr)
 	return ot;
 }
 
+enum string kernel_libc_path = "$project/output/libkc.a";
+
+Target kernel_libc()
+{
+	import std.stdio, std.path, std.file;
+
+	enum string CC = "clang -c -fno-builtin -nostdlib -nostdinc --target=x86_64-unknown-linux-elf -std=c11 -mcmodel=large -ffreestanding -O2" ~ " -Wno-implicit-function-declaration -Wno-invalid-noreturn -isystem source/kernellibc/includes -Isource/kernellibc/internals -Isource/kernellibc/platform/novuos/includes" ~ " -Isource/kernellibc/platform/novuos/internals -Isource/kernellibc/opt/nothread -I/home/kubasz/NovuOS/source/kernellibc/opt/c_locale ";
+	enum sourcePaths = [
+			"source/kernellibc/functions",
+			"source/kernellibc/platform/novuos/functions",
+			"source/kernellibc/opt/nothread", "/home/kubasz/NovuOS/source/kernellibc/opt/c_locale"
+		];
+	Target[] ksources = [];
+	foreach (string srcPath; sourcePaths)
+	{
+		foreach (DirEntry de; dirEntries(srcPath, SpanMode.depth, true))
+		{
+			if (de.isFile() && extension(de.name) == ".c")
+			{
+				string outf = stripExtension(relativePath(de.name,
+					buildNormalizedPath(getcwd(), "source/"))) ~ ".o";
+				ksources ~= Target(`$project/output/` ~ outf, CC ~ " -o $out $in",
+					Target(de.name));
+			}
+		}
+	}
+	return Target(kernel_libc_path, "ar rcs $out $in", ksources);
+}
+
 enum kernel_objs = [objectFile(SourceFile(`source/kernel/object.d`),
 		Flags(DFLAGS_FREESTANDING_ALLOWGC), KERNEL_IMPORTS, KERNEL_SIMPORTS)] ~ kObjs(
-		[`../invariant.d`,`kmain.d`, `bootdata.d`, `basictypes.d`, `memory/pager.d`,
-		`gfx/framebuffer.d`, `gfx/fbcon.d`, `formats/elf.d`, `cpu/descriptors.d`]) ~ [rObj(
-		`font/confont.d`)];
+		[`../invariant.d`, `kmain.d`, `bootdata.d`, `basictypes.d`,
+		`memory/pager.d`, `gfx/framebuffer.d`, `gfx/fbcon.d`, `formats/elf.d`,
+		`cpu/descriptors.d`, `iasm.d`]) ~ [rObj(`font/confont.d`)];
 
 enum kernel_elf = Target(`output/novuos.elf`,
-		`ld -T source/kernel/linker.ld -nostdlib -nodefaultlibs -o $out $in`, kernel_objs);
+		`ld -T source/kernel/linker.ld -nostdlib -nodefaultlibs -o $out $in`,
+		kernel_objs ~ Target(kernel_libc_path));
 
 enum novuos_image = Target(`$project/output/bootimage.img`,
 		`$project/rebuildImage.sh $out $in`, [uefi_app, kernel_elf]);
 
-mixin build!(uefi_app, kernel_elf, novuos_image);
+mixin build!(uefi_app, kernel_libc, kernel_elf, novuos_image);
