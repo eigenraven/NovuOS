@@ -8,7 +8,6 @@ compile_commands.json
 
 # Created by https://www.gitignore.io/api/assembler,intellij,d,eclipse,linux,visualstudiocode,visualstudio,ninja,java,windows
 ### Assembler ###
-*.[sS]
 *.bc
 
 ### Intellij ###
