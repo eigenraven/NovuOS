@@ -6,7 +6,7 @@ static this()
 	defaultOptions.isDubProject = false;
 }
 
-enum DFLAGS_FREESTANDING_ALLOWGC = `-conf=ldc2.conf -g -mtriple=x86_64-unknown-linux-elf -disable-red-zone -Iuefi-d/source -Isource/uefiloader/dsrc -defaultlib= -debuglib= -code-model=large -mattr=+sse,+sse2,-sse3 `;
+enum DFLAGS_FREESTANDING_ALLOWGC = `-d-version=NovuOS -conf=ldc2.conf -g -mtriple=x86_64-unknown-linux-elf -disable-red-zone -Iuefi-d/source -Isource/uefiloader/dsrc -defaultlib= -debuglib= -code-model=large -mattr=+sse,+sse2,-sse3 `;
 enum DFLAGS_FREESTANDING = DFLAGS_FREESTANDING_ALLOWGC ~ ` -vgc -nogc`;
 
 enum UEFI_DC = `ldc2 -mtriple=x86_64-unknown-windows-coff -disable-red-zone -boundscheck=off -nogc -mattr=-sse,-sse2,-sse3 -defaultlib= -debuglib= -code-model=large -Iuefi-d/source -Isource/kernel -Isource/uefiloader/dsrc -Iuefi-d/source -c `;
@@ -76,17 +76,35 @@ Target kernel_libc()
 	return Target(kernel_libc_path, "ar rcs $out $in", ksources);
 }
 
-enum kernel_objs = [objectFile(SourceFile(`source/kernel/object.d`),
-		Flags(DFLAGS_FREESTANDING_ALLOWGC), KERNEL_IMPORTS, KERNEL_SIMPORTS)] ~ kObjs(
-		[`../invariant.d`, `kmain.d`, `bootdata.d`, `basictypes.d`,
-		`memory/pager.d`, `gfx/framebuffer.d`, `gfx/fbcon.d`, `formats/elf.d`,
-		`cpu/descriptors.d`, `iasm.d`]) ~ [rObj(`font/confont.d`)];
+Target kernel_elf()
+{
+	import std.stdio, std.path, std.file;
 
-enum kernel_elf = Target(`output/novuos.elf`,
+	enum sourcePaths = ["source/kernel", "resources/"];
+	Target[] ksources = [];
+	foreach (string srcPath; sourcePaths)
+	{
+		foreach (DirEntry de; dirEntries(srcPath, SpanMode.depth, true))
+		{
+			if (de.isFile() && extension(de.name) == ".d")
+			{
+				if (baseName(de.name) == "object.d")
+					continue;
+				string outf = stripExtension(relativePath(de.name, getcwd())) ~ ".o";
+				ksources ~= objectFile(SourceFile(de.name),
+					Flags(DFLAGS_FREESTANDING), KERNEL_IMPORTS, KERNEL_SIMPORTS);
+			}
+		}
+	}
+	ksources ~= objectFile(SourceFile(`source/kernel/object.d`),
+		Flags(DFLAGS_FREESTANDING_ALLOWGC), KERNEL_IMPORTS, KERNEL_SIMPORTS);
+	ksources ~= Target(`$project/output/asmhelper.o`, `yasm -o $out -f elf64 -g dwarf2 $in`, Target(`source/kernel/asmhelper.s`));
+	return Target(`$project/output/novuos.elf`,
 		`ld -T source/kernel/linker.ld -nostdlib -nodefaultlibs -o $out $in`,
-		kernel_objs ~ Target(kernel_libc_path));
+		ksources ~ Target(kernel_libc_path));
+}
 
 enum novuos_image = Target(`$project/output/bootimage.img`,
-		`$project/rebuildImage.sh $out $in`, [uefi_app, kernel_elf]);
+		`$project/rebuildImage.sh $out $in`, [uefi_app, Target(`$project/output/novuos.elf`)]);
 
 mixin build!(uefi_app, kernel_libc, kernel_elf, novuos_image);

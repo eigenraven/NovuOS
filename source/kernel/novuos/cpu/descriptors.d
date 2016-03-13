@@ -2,6 +2,9 @@ module novuos.cpu.descriptors;
 
 import novuos.basictypes;
 
+nothrow:
+@nogc:
+
 extern (C) struct GDTDescriptor
 {
 align(1):
@@ -47,6 +50,9 @@ align(1):
 	ubyte limitHighFlags;
 	ubyte baseHigh;
 
+nothrow:
+@nogc:
+
 	void limit(uint lim)
 	{
 		limitLow = lim & 0xFFFF;
@@ -61,6 +67,27 @@ align(1):
 	}
 }
 
+/// 13 qwords min
+extern (C) struct TSS
+{
+align(1):
+	uint reserved0;
+	ulong rsp0;
+	ulong rsp1;
+	ulong rsp2;
+	ulong reserved1;
+	ulong ist1;
+	ulong ist2;
+	ulong ist3;
+	ulong ist4;
+	ulong ist5;
+	ulong ist6;
+	ulong ist7;
+	ulong reserved2;
+	ushort reserved3;
+	ushort iomapBase;
+}
+
 extern (C) struct IDTEntry
 {
 align(1):
@@ -71,13 +98,16 @@ align(1):
 	ushort offsetHigh;
 	uint offsetHigh64;
 
+nothrow:
+@nogc:
+
 	void offset(ulong off)
 	{
 		offsetLow = off & 0xFFFF;
 		offsetHigh = (off >> 16) & 0xFFFF;
 		offsetHigh64 = (off >> 32) & 0xFFFF_FFFF;
 	}
-	
+
 	alias type = BitField!(ubyte, typeAndAttr, 4, 0);
 	alias storage = BitField!(ubyte, typeAndAttr, 1, 4);
 	alias dpl = BitField!(ubyte, typeAndAttr, 2, 5);
@@ -105,6 +135,32 @@ align(1):
 	ubyte baseHigh;
 	uint baseHigh64;
 	uint reserved;
+nothrow:
+@nogc:
+
+	void limit(uint lim)
+	{
+		limitLow = lim & 0xFFFF;
+		limitAndGranularity = (limitAndGranularity & 0xF0) | ((lim >> 16) & 0xF);
+	}
+
+	void base(ulong bas)
+	{
+		baseLow = bas & 0xFFFF;
+		baseMed = (bas >> 16) & 0xFF;
+		baseHigh = (bas >> 24) & 0xFF;
+		baseHigh64 = (bas >> 32) & 0xFFFF_FFFF;
+	}
+}
+
+enum SegmentSelector : ushort
+{
+	Null = 0,
+	KernelCode = 1,
+	KernelData = 2,
+	UserCode = 3,
+	UserData = 4,
+	KernelTSS = 6
 }
 
 extern (C) struct GateEntry
@@ -119,14 +175,21 @@ align(1):
 	uint reserved;
 }
 
-void lgdt(GDTEntry* ptr, ushort size)
+extern (C) void reload_gdt();
+
+void lgdt(GDTEntry* ptr, ushort size) nothrow @nogc
 {
-	GDTDescriptor idt;
-	idt.offset = cast(size_t) ptr;
-	idt.size = size;
+	import ldc.llvmasm : __asm;
+	GDTDescriptor gdt;
+	gdt.offset = cast(size_t) ptr;
+	gdt.size = size;
+	enum long KCode = SegmentSelector.KernelCode * GDTEntry.sizeof;
+	enum long KData = SegmentSelector.KernelData * GDTEntry.sizeof;
 	asm nothrow @nogc
 	{
-		lgdt idt;
+		cli;
+		lgdt [gdt];
+		call reload_gdt;
 	}
 }
 

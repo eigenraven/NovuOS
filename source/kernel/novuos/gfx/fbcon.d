@@ -125,5 +125,84 @@ nothrow:
 			printChar(ch);
 		}
 	}
+	
+	enum BoxDraw : dchar
+	{
+		V=0x2551,
+		H=0x2550,
+		TL=0x2554,
+		TR=0x2557,
+		BL=0x255A,
+		BR=0x255D,
+		Box=0x2588
+	}
+	
+	/// Move cursor to a specified position
+	void moveTo(ulong x, ulong y)
+	{
+		this.x = x;
+		this.y = y;
+	}
+	
+	/// Draw a box out of UTF box-draw characters, put cursor in the top-left corner of the inside
+	void drawBox(ulong x, ulong y, ulong w, ulong h)
+	{
+		this.x = x+1;
+		this.y = y+1;
+		if(w<=1)
+		{
+			if(h<=1)
+			{
+				putChar(BoxDraw.Box, x, y, colFG);
+			}
+			else
+			{
+				foreach(ulong cy; y..y+h)
+				{
+					putChar(BoxDraw.V, x, cy, colFG);
+				}
+			}
+		}
+		else
+		{
+			if(h<=1)
+			{
+				foreach(ulong cx; x..x+w)
+				{
+					putChar(BoxDraw.H, cx, y, colFG);
+				}
+			}
+			else
+			{
+				w--;
+				h--;
+				// corners
+				putChar(BoxDraw.TL, x, y, colFG);
+				putChar(BoxDraw.TR, x+w, y, colFG);
+				putChar(BoxDraw.BL, x, y+h, colFG);
+				putChar(BoxDraw.BR, x+w, y+h, colFG);
+				// top rule
+				foreach(ulong cx; x+1..x+w)
+				{
+					putChar(BoxDraw.H, cx, y, colFG);
+				}
+				// bottom rule
+				foreach(ulong cx; x+1..x+w)
+				{
+					putChar(BoxDraw.H, cx, y+h, colFG);
+				}
+				// left rule
+				foreach(ulong cy; y+1..y+h)
+				{
+					putChar(BoxDraw.V, x, cy, colFG);
+				}
+				// right rule
+				foreach(ulong cy; y+1..y+h)
+				{
+					putChar(BoxDraw.V, x+w, cy, colFG);
+				}
+			}
+		}
+	}
 
 }

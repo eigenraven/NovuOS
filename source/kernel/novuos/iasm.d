@@ -4,6 +4,9 @@ module novuos.iasm;
 import ldc.attributes;
 import ldc.intrinsics;
 
+nothrow:
+@nogc:
+
 pragma(inline, true) void outb(ushort port, ubyte value)
 {
 	pragma(LDC_allow_inline);
