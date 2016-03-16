@@ -183,8 +183,6 @@ void lgdt(GDTEntry* ptr, ushort size) nothrow @nogc
 	GDTDescriptor gdt;
 	gdt.offset = cast(size_t) ptr;
 	gdt.size = size;
-	enum long KCode = SegmentSelector.KernelCode * GDTEntry.sizeof;
-	enum long KData = SegmentSelector.KernelData * GDTEntry.sizeof;
 	asm nothrow @nogc
 	{
 		cli;
@@ -200,6 +198,6 @@ void lidt(IDTEntry* ptr, ushort size)
 	idt.size = size;
 	asm nothrow @nogc
 	{
-		lidt idt;
+		lidt [idt];
 	}
 }
