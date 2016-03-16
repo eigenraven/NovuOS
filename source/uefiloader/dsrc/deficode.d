@@ -646,7 +646,7 @@ extern (C) EFI_STATUS efi_main(EFI_HANDLE ImageHandle_, EFI_SYSTEM_TABLE* System
 	ShowBootNumberX(cast(int)(KernelEntryPoint >> 32));
 	ShowBootString(" ");
 	ShowBootNumberX(cast(int)(KernelEntryPoint & 0xFFFFFFFF));
-	version (none)
+	version (all)
 	{
 		ShowBootStringLn("Press key..."w);
 		ST.ConIn.Reset(ST.ConIn, FALSE);

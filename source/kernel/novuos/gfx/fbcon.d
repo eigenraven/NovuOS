@@ -3,6 +3,16 @@ module novuos.fbcon;
 import confont_imp;
 import novuos.gfx.framebuffer;
 
+__gshared FramebufferConsole* fbcon;
+
+extern(C) void kprintDString(const(dchar)* str, ulong len) nothrow @nogc
+{
+	if(fbcon!=null)
+	{
+		fbcon.printString(str[0..len]);
+	}
+}
+
 struct FramebufferConsole
 {
 	enum uint PadPixels = 2;
@@ -17,6 +27,7 @@ nothrow:
 @nogc:
 	this(Framebuffer* f)
 	{
+		.fbcon = &this;
 		fb = f;
 		w = (fb.width - 2 * PadPixels) / (CharWidth * 2);
 		w <<= 1;
@@ -36,7 +47,7 @@ nothrow:
 			ch = 0;
 		uint sz = confont_chars[2 * ch];
 		fb.drawBitmapR(confont_bitmap.ptr + confont_chars[2 * ch + 1], 0, 0,
-			sz * 8, 16, sz, x, y, color);
+				sz * 8, 16, sz, x, y, color);
 		return sz;
 	}
 
@@ -44,8 +55,7 @@ nothrow:
 	/// Returns: character width in grid cells
 	uint putChar(dchar dch, ulong x, ulong y, uint color)
 	{
-		return putCharAbs(dch, x * CharWidth + PadPixels, y * CharHeight + PadPixels,
-			color);
+		return putCharAbs(dch, x * CharWidth + PadPixels, y * CharHeight + PadPixels, color);
 	}
 
 	/// Set current print color
@@ -95,11 +105,11 @@ nothrow:
 			return true;
 		case ClearLine:
 			x = 0;
-			fb.fillRect(0, PadPixels + CharHeight*y, 0, fb.width, colBG);
+			fb.fillRect(0, PadPixels + CharHeight * y, 0, fb.width, colBG);
 			return true;
 		case ClearScreen:
-			x=0;
-			y=0;
+			x = 0;
+			y = 0;
 			fb.clearToColor(colBG);
 			return true;
 		default:
@@ -118,46 +128,62 @@ nothrow:
 	}
 
 	/// Print a string
-	void printString(dstring str)
+	void printString(const(dchar[]) str)
 	{
 		foreach (dchar ch; str)
 		{
+			if (ch == '\0')
+				break;
 			printChar(ch);
 		}
 	}
-	
+
+	/// Print a C string
+	void printCString(const(char[]) str, int lim)
+	{
+		for (int i = 0; (i < lim); i++)
+		{
+			dchar ch = cast(dchar)(str[i]);
+			if (ch == '\0')
+			{
+				return;
+			}
+			printChar(ch);
+		}
+	}
+
 	enum BoxDraw : dchar
 	{
-		V=0x2551,
-		H=0x2550,
-		TL=0x2554,
-		TR=0x2557,
-		BL=0x255A,
-		BR=0x255D,
-		Box=0x2588
+		V = 0x2551,
+		H = 0x2550,
+		TL = 0x2554,
+		TR = 0x2557,
+		BL = 0x255A,
+		BR = 0x255D,
+		Box = 0x2588
 	}
-	
+
 	/// Move cursor to a specified position
 	void moveTo(ulong x, ulong y)
 	{
 		this.x = x;
 		this.y = y;
 	}
-	
+
 	/// Draw a box out of UTF box-draw characters, put cursor in the top-left corner of the inside
 	void drawBox(ulong x, ulong y, ulong w, ulong h)
 	{
-		this.x = x+1;
-		this.y = y+1;
-		if(w<=1)
+		this.x = x + 1;
+		this.y = y + 1;
+		if (w <= 1)
 		{
-			if(h<=1)
+			if (h <= 1)
 			{
 				putChar(BoxDraw.Box, x, y, colFG);
 			}
 			else
 			{
-				foreach(ulong cy; y..y+h)
+				foreach (ulong cy; y .. y + h)
 				{
 					putChar(BoxDraw.V, x, cy, colFG);
 				}
@@ -165,9 +191,9 @@ nothrow:
 		}
 		else
 		{
-			if(h<=1)
+			if (h <= 1)
 			{
-				foreach(ulong cx; x..x+w)
+				foreach (ulong cx; x .. x + w)
 				{
 					putChar(BoxDraw.H, cx, y, colFG);
 				}
@@ -178,28 +204,28 @@ nothrow:
 				h--;
 				// corners
 				putChar(BoxDraw.TL, x, y, colFG);
-				putChar(BoxDraw.TR, x+w, y, colFG);
-				putChar(BoxDraw.BL, x, y+h, colFG);
-				putChar(BoxDraw.BR, x+w, y+h, colFG);
+				putChar(BoxDraw.TR, x + w, y, colFG);
+				putChar(BoxDraw.BL, x, y + h, colFG);
+				putChar(BoxDraw.BR, x + w, y + h, colFG);
 				// top rule
-				foreach(ulong cx; x+1..x+w)
+				foreach (ulong cx; x + 1 .. x + w)
 				{
 					putChar(BoxDraw.H, cx, y, colFG);
 				}
 				// bottom rule
-				foreach(ulong cx; x+1..x+w)
+				foreach (ulong cx; x + 1 .. x + w)
 				{
-					putChar(BoxDraw.H, cx, y+h, colFG);
+					putChar(BoxDraw.H, cx, y + h, colFG);
 				}
 				// left rule
-				foreach(ulong cy; y+1..y+h)
+				foreach (ulong cy; y + 1 .. y + h)
 				{
 					putChar(BoxDraw.V, x, cy, colFG);
 				}
 				// right rule
-				foreach(ulong cy; y+1..y+h)
+				foreach (ulong cy; y + 1 .. y + h)
 				{
-					putChar(BoxDraw.V, x+w, cy, colFG);
+					putChar(BoxDraw.V, x + w, cy, colFG);
 				}
 			}
 		}

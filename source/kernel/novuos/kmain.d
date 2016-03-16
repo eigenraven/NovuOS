@@ -37,7 +37,7 @@ extern (C) void kmain() @nogc nothrow
 	fbcon.moveTo(0, 4);
 	fbcon.setColor(0xEEEEEE);
 	fbcon.printString("[trace] kmain() executed\n"d);
-	initGDT();
+	initGDT(ksPtr);
 	fbcon.printString("[trace] GDT reloaded\n"d);
 	initInterruptHandlers();
 	fbcon.printString("[trace] installed interrupt handlers\n"d);

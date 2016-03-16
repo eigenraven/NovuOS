@@ -1,7 +1,7 @@
 module object;
 
 mixin(makeTypeInfo!(char, wchar, dchar, int, uint, short, ushort, byte, ubyte,
-	long, ulong, float, double, real, void, bool, string)());
+		long, ulong, float, double, real, void, bool, string)());
 
 private string makeTypeInfo(T...)()
 {
@@ -10,8 +10,8 @@ private string makeTypeInfo(T...)()
 		string code;
 
 		enum doit(t) = "class TypeInfo_" ~ t.mangleof ~ " : TypeInfo {
-					override string toString() const { return \"" ~ t
-				.stringof ~ "\"; }
+					override string toString() const { return \""
+				~ t.stringof ~ "\"; }
 				}";
 		template doitm(string s, t, u...)
 		{
@@ -73,23 +73,20 @@ version = with_libc;
 
 version (with_libc)
 {
-	extern (C)
-	{
-		private
-		{
-			// you should import core.stdc from real druntime or something instead
-			void* malloc(size_t);
-			void free(void*);
-			void* realloc(void*, size_t);
-			void* memcpy(void* dest, const void* src, size_t n);
+	import core.stdc.stdlib;
+	import core.stdc.stdio;
+	import core.stdc.string;
 
-			struct FILE;
-			extern __gshared FILE* stdout;
-			size_t fwrite(in void*, size_t, size_t, FILE*);
-		}
-	}
 	version = use_malloc;
 	version = compiler_dso;
+}
+
+extern (C) struct __va_list_tag
+{
+	uint offset_regs = 6 * 8;
+	uint offset_fpregs = 6 * 8 + 8 * 16;
+	void* stack_args;
+	void* reg_args;
 }
 
 void write_raw(ssize_t i, ssize_t fd = 1)
@@ -111,6 +108,8 @@ void write(T...)(T t)
 
 void exit(int code = 0)
 {
+	dstring msg = "[err] exit called";
+	kprintDString(msg.ptr, msg.length);
 	asm nothrow @nogc
 	{
 	deadloop:
@@ -118,20 +117,6 @@ void exit(int code = 0)
 		hlt;
 		jmp deadloop;
 	}
-}
-
-nothrow pure size_t strlen(const(char)* c)
-{
-	if (c is null)
-		return 0;
-
-	size_t l = 0;
-	while (*c)
-	{
-		c++;
-		l++;
-	}
-	return l;
 }
 
 /**
@@ -385,7 +370,7 @@ class TypeInfo_Class : TypeInfo
 
 	ClassFlags m_flags;
 	void* deallocator;
-	OffsetTypeInfo [] m_offTi;
+	OffsetTypeInfo[] m_offTi;
 	void function(Object) defaultConstructor; // default Constructor
 
 	immutable(void)* m_RTInfo; // data for precise GC
@@ -457,7 +442,7 @@ class TypeInfo_Inout : TypeInfo_Const
 {
 }
 
-enum 
+enum
 {
 	MIctorstart = 0x1, // we've started constructing it
 	MIctordone = 0x2, // finished construction
@@ -681,13 +666,13 @@ class Exception : Throwable
      * Exception; the $(D throw) statement should be used for that purpose.
      */
 	@nogc @safe pure nothrow this(string msg, string file = __FILE__,
-		size_t line = __LINE__, Throwable next = null)
+			size_t line = __LINE__, Throwable next = null)
 	{
 		super(msg, file, line, next);
 	}
 
 	@nogc @safe pure nothrow this(string msg, Throwable next,
-		string file = __FILE__, size_t line = __LINE__)
+			string file = __FILE__, size_t line = __LINE__)
 	{
 		super(msg, file, line, next);
 	}
@@ -744,6 +729,8 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
 	return true;
 }
 
+extern(C) void kprintDString(const(dchar)* str, ulong len) nothrow @nogc;
+
 extern (C)
 {
 	// the compiler spits this out all the time
@@ -778,8 +765,8 @@ extern (C)
 
 	void _d_arraybounds(string m, uint line)
 	{
-		write("_d_array_bounds");
-		exit(1);
+		dstring msg = "[err] _d_array_bounds";
+		kprintDString(msg.ptr, msg.length);
 	}
 
 	void _d_unittest()
@@ -801,17 +788,10 @@ extern (C)
 		onAssert(msg, file, line);
 	}
 
-	private void onAssert(string msg, string file, uint line)
+	private void onAssert(string amsg, string file, uint line)
 	{
-		version (without_exceptions)
-		{
-			write("\nAssertion failure\n");
-			exit(1);
-		}
-		else
-		{
-			//throw new AssertError(msg, file, line);
-		}
+		dstring msg = "[err] d assert failure";
+		kprintDString(msg.ptr, msg.length);
 	}
 }
 
