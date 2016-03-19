@@ -31,13 +31,13 @@ extern (C) void kmain() @nogc nothrow
 	FramebufferConsole fbcon = FramebufferConsole(&fb);
 	fbcon.setColor(0x1199EE);
 	enum dstring WelcomeMsg = `NovuOS kernel console v1.0`d;
-	enum ulong WML = WelcomeMsg.length/2;
-	fbcon.drawBox(fbcon.w/2 - WML - 2, 1, WelcomeMsg.length+2, 3);
+	enum ulong WML = WelcomeMsg.length / 2;
+	fbcon.drawBox(fbcon.w / 2 - WML - 2, 1, WelcomeMsg.length + 2, 3);
 	fbcon.printString(WelcomeMsg);
 	fbcon.moveTo(0, 4);
 	fbcon.setColor(0xEEEEEE);
 	fbcon.printString("[trace] kmain() executed\n"d);
-	initGDT(ksPtr);
+	initGDT(bootData.kernelStackBase);
 	fbcon.printString("[trace] GDT reloaded\n"d);
 	initInterruptHandlers();
 	fbcon.printString("[trace] installed interrupt handlers\n"d);

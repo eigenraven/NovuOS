@@ -6,6 +6,9 @@ import novuos.cpu.descriptors;
 nothrow:
 @nogc:
 
+__gshared ulong savedStack, savedStackBase;
+__gshared align(64) ubyte[1024] savedSSE;
+__gshared align(64) ubyte[1024] interruptStack;
 enum ushort interruptCount = 256;
 __gshared IDTEntry[interruptCount] kernelIDT;
 
@@ -18,12 +21,37 @@ void initInterruptHandlers()
 	lidt(kernelIDT.ptr, interruptCount);
 }
 
-void dummyIntHandler()
+void interruptHandlerNoCode(alias fun)()
 {
 	asm nothrow @nogc
 	{
 		naked;
-		nop;
+		// old stack
+		fxsave [interruptStack.ptr];
+		mov [savedStack], RSP;
+		mov [savedStackBase], RBP;
+		mov RSP, interruptStack.ptr;
+		mov RBP, RSP;
+		push RAX;
+		push RBX;
+		push RCX;
+		push RDX;
+		push RBP;
+		push RSP;
+		push RSI;
+		push RDI;
+		push R8;
+		push R9;
+		push R10;
+		push R11;
+		push R12;
+		push R13;
+		push R14;
+		push R15;
+		
+		fxrstor [interruptStack.ptr];
+		mov RSP, [savedStack];
+		mov RBP, [savedStackBase];
 		iretq;
 	}
 }

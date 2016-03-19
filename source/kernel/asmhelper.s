@@ -18,6 +18,7 @@ reloadCS:
 	mov FS, AX
 	mov GS, AX
 	mov AX, 0x28
+	cli
 	; ltr AX
-	ret;
+	ret
 

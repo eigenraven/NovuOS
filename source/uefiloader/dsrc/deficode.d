@@ -580,6 +580,7 @@ void ExecuteKernel()
 	ulong bdptr = cast(ulong)(&BootData);
 	ulong ksptr = cast(ulong)(KernelStackPtr);
 	ksptr += KernelStackSize * 4096 - 128;
+	BootData.kernelStackBase = ksptr;
 	asm nothrow @nogc
 	{
 		cli;

@@ -8,35 +8,43 @@ SECTIONS
 	
 	.text : AT(ADDR(.text) - KERNEL_VMA) {
 		KStext = .;
-		*(.text*)
-		*(.rodata*)
+		KEEP( *(.text*) )
+		KEEP( *(.rodata*) )
 		
 		. = ALIGN(4096);
 	}
 
 	.data : AT(ADDR(.data) - KERNEL_VMA) {
 		KSdata = .;
-		*(.data*)
-		*(.ctors*)
-		*(.dtors*)
-		*(.minfo_beg)
-		*(.minfo)
-		*(.minfo_end)
+		KEEP( *(.data*) )
+		. = ALIGN(8);
+		__ctors_array_start = . ;
+		KEEP( *(.ctors) )
+		__ctors_array_end = . ;
+		__dtors_array_start = . ;
+		KEEP( *(.dtors) )
+		__dtors_array_end = . ;
+		KEEP( *(.ctors*) )
+		KEEP( *(.dtors*) )
+		KEEP( *(.minfo_beg) )
+		KEEP( *(.minfo) )
+		KEEP( *(.minfo_end) )
 		
 		. = ALIGN(4096);
 	}
 
 	.eh_frame : AT(ADDR(.eh_frame) - KERNEL_VMA) {
 		KSehframe = .;
-		*(.eh_frame)
+		KEEP( *(.eh_frame) )
 		
 		. = ALIGN(4096);
 	}
 
 	.bss : AT(ADDR(.bss) - KERNEL_VMA) {
 		KSbss = .;
-		*(.bss*)
-		*(COMMON)
+		KEEP( *(.dynbss*) )
+		KEEP( *(.bss*) )
+		KEEP( *(COMMON) )
 		
 		. = ALIGN(4096);
 	}
