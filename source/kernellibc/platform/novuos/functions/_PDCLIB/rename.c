@@ -13,6 +13,7 @@
 int _PDCLIB_rename( const char * old, const char * new )
 {
     errno = ENOTSUP;
+	return -1;
 }
 
 #endif

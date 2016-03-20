@@ -43,6 +43,12 @@ extern (C) void kmain() @nogc nothrow
 	fbcon.printString("[trace] installed interrupt handlers\n"d);
 	asm nothrow @nogc
 	{
+		int 0x80;
+		cli;
+	}
+	fbcon.printString("[trace] tested interrupt handlers\n"d);
+	asm nothrow @nogc
+	{
 	xloop:
 		cli;
 		hlt;

@@ -67,6 +67,10 @@ nothrow:
 	}
 }
 
+enum size_t ioBitmapBits = 65536;
+enum size_t ioBitmapBytes = ioBitmapBits/8;
+enum size_t ioBitmapLongs = ioBitmapBytes / ulong.sizeof;
+
 /// 13 qwords min
 extern (C) struct TSS
 {
@@ -86,18 +90,19 @@ align(1):
 	ulong reserved2;
 	ushort reserved3;
 	ushort iomapBase;
+	ulong[ioBitmapLongs+1] iomap;
 }
 
 extern (C) struct IDTEntry
 {
 align(1):
-	ushort offsetLow;
-	ushort selector;
-	ubyte zero;
-	ubyte typeAndAttr;
-	ushort offsetHigh;
-	uint offsetHigh64;
-
+	ushort offsetLow; // 2
+	ushort selector; // 4
+	ubyte zero; // 5
+	ubyte typeAndAttr; // 6
+	ushort offsetHigh; // 8
+	uint offsetHigh64; // 12
+	uint pad; // 16
 nothrow:
 @nogc:
 

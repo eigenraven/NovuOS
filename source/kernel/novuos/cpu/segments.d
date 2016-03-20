@@ -4,8 +4,8 @@ import novuos.cpu.descriptors;
 import novuos.basictypes;
 import novuos.gfx.fbcon;
 
-__gshared GDTEntry[32] kernelGDT;
-__gshared ulong[64] kernelTSS;
+__gshared align(64) GDTEntry[32] kernelGDT;
+__gshared align(64) TSS kernelTSS;
 
 nothrow:
 @nogc:
@@ -13,42 +13,33 @@ nothrow:
 void initGDT(ulong rsp)
 {
 	memset(kernelGDT.ptr, kernelGDT.sizeof, 0);
-	memset(kernelTSS.ptr, kernelTSS.sizeof, 0);
+	memset(&kernelTSS, TSS.sizeof, 0);
 	kernelGDT[SegmentSelector.Null] = GDTEntry(0xFFFF, 0, 0,
-			GDTAccess.Present | GDTAccess.MustBeOne | GDTAccess.ReadWrite,
-			0xF | GDTFlags.Size64 | GDTFlags.PageGranularity, 0);
+		GDTAccess.Present | GDTAccess.MustBeOne | GDTAccess.ReadWrite,
+		0xF | GDTFlags.Size64 | GDTFlags.PageGranularity, 0);
 	kernelGDT[SegmentSelector.KernelCode] = GDTEntry(0xFFFF, 0, 0,
-			GDTAccess.Present | GDTAccess.MustBeOne | GDTAccess.Executable | GDTAccess.ReadWrite | GDTAccess.Ring0,
-			0xF | GDTFlags.Size64 | GDTFlags.PageGranularity, 0);
+		GDTAccess.Present | GDTAccess.MustBeOne | GDTAccess.Executable | GDTAccess.ReadWrite | GDTAccess.Ring0,
+		0xF | GDTFlags.Size64 | GDTFlags.PageGranularity, 0);
 	kernelGDT[SegmentSelector.KernelData] = GDTEntry(0xFFFF, 0, 0,
-			GDTAccess.Present | GDTAccess.MustBeOne | GDTAccess.ReadWrite | GDTAccess.Ring0,
-			0xF | GDTFlags.Size64 | GDTFlags.PageGranularity, 0);
+		GDTAccess.Present | GDTAccess.MustBeOne | GDTAccess.ReadWrite | GDTAccess.Ring0,
+		0xF | GDTFlags.Size64 | GDTFlags.PageGranularity, 0);
 	kernelGDT[SegmentSelector.UserCode] = GDTEntry(0xFFFF, 0, 0,
-			GDTAccess.Present | GDTAccess.MustBeOne | GDTAccess.Executable | GDTAccess.ReadWrite | GDTAccess.Ring3,
-			0xF | GDTFlags.Size64 | GDTFlags.PageGranularity, 0);
+		GDTAccess.Present | GDTAccess.MustBeOne | GDTAccess.Executable | GDTAccess.ReadWrite | GDTAccess.Ring3,
+		0xF | GDTFlags.Size64 | GDTFlags.PageGranularity, 0);
 	kernelGDT[SegmentSelector.UserData] = GDTEntry(0xFFFF, 0, 0,
-			GDTAccess.Present | GDTAccess.MustBeOne | GDTAccess.ReadWrite | GDTAccess.Ring3,
-			0xF | GDTFlags.Size64 | GDTFlags.PageGranularity, 0);
+		GDTAccess.Present | GDTAccess.MustBeOne | GDTAccess.ReadWrite | GDTAccess.Ring3,
+		0xF | GDTFlags.Size64 | GDTFlags.PageGranularity, 0);
 	SystemSegmentEntry* tsse = cast(SystemSegmentEntry*)(&kernelGDT[SegmentSelector.KernelTSS]);
-	tsse.limit = kernelTSS.length * ulong.sizeof - 1;
-	tsse.base = cast(ulong)(kernelTSS.ptr);
+	tsse.limit = TSS.sizeof - 1;
+	tsse.base = cast(ulong)(&kernelTSS);
 	tsse.typeAndFlags = SystemSegmentType.AvailableTSS | GDTAccess.Present;
 	tsse.reserved = 0;
-	TSS* tss = cast(TSS*) kernelTSS;
-	tss.rsp0 = rsp;
-	tss.rsp1 = rsp;
-	tss.rsp2 = rsp;
-	tss.ist1 = rsp;
-	tss.ist2 = rsp;
-	tss.ist3 = rsp;
-	tss.iomapBase = kernelTSS.length * 8;
-	char[70] buf;
-	long* ggg = cast(long*) kernelGDT.ptr;
-	ggg[0] = 0;
-	for (int i = 0; i < 8; i++)
-	{
-		snprintf(buf.ptr, buf.length, "GDT[%d] := %016llx\n\0", i, ggg[i]);
-		fbcon.printCString(buf, buf.length);
-	}
+	kernelTSS.rsp0 = rsp;
+	kernelTSS.rsp1 = rsp;
+	kernelTSS.rsp2 = rsp;
+	kernelTSS.ist1 = rsp;
+	kernelTSS.ist2 = rsp;
+	kernelTSS.ist3 = rsp;
+	kernelTSS.iomapBase = kernelTSS.iomap.offsetof;
 	lgdt(kernelGDT.ptr, cast(ushort)(kernelGDT.length * 64 - 64));
 }
