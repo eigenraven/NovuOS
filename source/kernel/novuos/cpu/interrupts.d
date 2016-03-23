@@ -9,7 +9,7 @@ nothrow:
 __gshared ulong savedStack, savedStackBase;
 __gshared align(64) ubyte[512] savedSSE;
 __gshared align(64) ulong[32] savedRegisters;
-__gshared align(64) ubyte[1024] interruptStack;
+__gshared align(64) ubyte[4097] interruptStack;
 enum ushort interruptCount = 256;
 __gshared align(64) IDTEntry[interruptCount] kernelIDT;
 
@@ -17,16 +17,17 @@ void initInterruptHandlers()
 {
 	for (int i = 0; i < interruptCount; i++)
 	{
-		kernelIDT[i].typeAndAttr = 0;
+		kernelIDT[i].offset = cast(ulong) cast(void*)&interruptHandler!(doNothing);
+		kernelIDT[i].typeAndAttr = 0x80 | SystemSegmentType.InterruptGate;
 		kernelIDT[i].selector = SegmentSelector.KernelCode;
-		kernelIDT[i].zero = 0;
+		kernelIDT[i].ist = 1;
 		kernelIDT[i].pad = 0;
 	}
-	kernelIDT[1].offset = cast(ulong) cast(void*)&interruptHandler!(doNothing);
+	/*kernelIDT[1].offset = cast(ulong) cast(void*)&interruptHandler!(doNothing);
 	kernelIDT[0x80].offset = cast(ulong) cast(void*)&interruptHandler!(printInt);
 	kernelIDT[0x80].type.value = SystemSegmentType.InterruptGate;
 	kernelIDT[0x80].dpl.value = 0;
-	kernelIDT[0x80].present.value = 1;
+	kernelIDT[0x80].present.value = 1;*/
 	lidt(kernelIDT.ptr, kernelIDT.sizeof);
 }
 
@@ -94,7 +95,7 @@ private void restoreRegs()
 	}
 }
 
-void interruptHandler(alias fun)()
+void interruptHandler2(alias fun)()
 {
 	asm nothrow @nogc
 	{
@@ -124,6 +125,15 @@ void interruptHandler(alias fun)()
 		call restoreRegs;
 		mov RSP, [savedStack];
 		mov RBP, [savedStackBase];
+		iretq;
+	}
+}
+
+void interruptHandler(alias fun)()
+{
+	asm nothrow @nogc
+	{
+		naked;
 		iretq;
 	}
 }

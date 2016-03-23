@@ -37,9 +37,14 @@ void initGDT(ulong rsp)
 	kernelTSS.rsp0 = rsp;
 	kernelTSS.rsp1 = rsp;
 	kernelTSS.rsp2 = rsp;
-	kernelTSS.ist1 = rsp;
-	kernelTSS.ist2 = rsp;
-	kernelTSS.ist3 = rsp;
+	import novuos.cpu.interrupts : interruptStack;
+	kernelTSS.ist1 = cast(ulong)&interruptStack[$-1];
+	kernelTSS.ist2 = kernelTSS.ist1;
+	kernelTSS.ist3 = kernelTSS.ist1;
+	kernelTSS.ist4 = kernelTSS.ist1;
+	kernelTSS.ist5 = kernelTSS.ist1;
+	kernelTSS.ist6 = kernelTSS.ist1;
+	kernelTSS.ist7 = kernelTSS.ist1;
 	kernelTSS.iomapBase = kernelTSS.iomap.offsetof;
-	lgdt(kernelGDT.ptr, cast(ushort)(kernelGDT.length * 64 - 64));
+	lgdt(kernelGDT.ptr, cast(ushort)(kernelGDT.length * 64 - 1));
 }

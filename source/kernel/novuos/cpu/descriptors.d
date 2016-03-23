@@ -98,7 +98,7 @@ extern (C) struct IDTEntry
 align(1):
 	ushort offsetLow; // 2
 	ushort selector; // 4
-	ubyte zero; // 5
+	ubyte ist; // 5
 	ubyte typeAndAttr; // 6
 	ushort offsetHigh; // 8
 	uint offsetHigh64; // 12
@@ -184,7 +184,6 @@ extern (C) void reload_gdt();
 
 void lgdt(GDTEntry* ptr, ushort size) nothrow @nogc
 {
-	import ldc.llvmasm : __asm;
 	GDTDescriptor gdt;
 	gdt.offset = cast(size_t) ptr;
 	gdt.size = size;
